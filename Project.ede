@@ -1,0 +1,28 @@
+;; Object ede-proj-project
+;; EDE Project Files are auto generated: Do Not Edit
+(ede-proj-project "ede-proj-project"
+  :file "Project.ede"
+  :name "Org Edna"
+  :targets
+  (list
+    (ede-proj-target-elisp "ede-proj-target-elisp"
+      :name "compile"
+      :path ""
+      :source '("org-edna.el")
+      :aux-packages '("org"))
+    (ede-proj-target-makefile-miscelaneous "ede-proj-target-makefile-miscelaneous"
+      :name #("check" 0 1 (idx 2))
+      :path ""
+      :source '("org-edna-tests.el" "org-edna-tests.org" "test.mk")
+      :partofall nil
+      :submakefile "test.mk")
+    (ede-proj-target-aux "ede-proj-target-aux"
+      :name "extra"
+      :path ""
+      :source '("org-edna.org" "COPYING" "dir" "org-edna.info" ".elpaignore"))
+    (ede-proj-target-elisp-autoloads "ede-proj-target-elisp-autoloads"
+      :name "autoloads"
+      :path ""
+      :source '("org-edna.el")
+      :autoload-file "org-edna-autoloads.el"))
+  :web-site-url "https://savannah.nongnu.org/projects/org-edna-el/")

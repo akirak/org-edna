@@ -1,0 +1,139 @@
+#+STARTUP: nologdone
+#+PROPERTY: Effort_ALL 0:01 0:02 0:03
+#+PROPERTY: COUNTER_ALL a b c d
+
+* COMMENT Copying
+Copyright (C) 2017-2018 Free Software Foundation, Inc.
+
+#+BEGIN_QUOTE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#+END_QUOTE
+* Test Pool
+** TODO Tagged Heading 1                                            :1:test:
+** TODO Tagged Heading 2                                            :1:test:
+** TODO ID Heading 1
+:PROPERTIES:
+:ID:       0d491588-7da3-43c5-b51a-87fbd34f79f7
+:LOGGING:  nil
+:END:
+** TODO ID Heading 2
+:PROPERTIES:
+:ID:       b010cbad-60dc-46ef-a164-eb155e62cbb2
+:LOGGING:  nil
+:END:
+** TODO ID Heading 3
+SCHEDULED: <2000-01-15 Sat 00:00>
+:PROPERTIES:
+:ID:       97e6b0f0-40c4-464f-b760-6e5ca9744eb5
+:END:
+** DONE ID Heading 4
+:PROPERTIES:
+:ID:       7d4d564b-18b2-445c-a0c8-b1b3fb9ad29e
+:END:
+** Scheduled Headings
+*** TODO Scheduled Heading 1
+SCHEDULED: <2017-01-01 Sun>
+:PROPERTIES:
+:ID:       caf27724-0887-4565-9765-ed2f1edcfb16
+:END:
+*** TODO Scheduled Heading 2
+SCHEDULED: <2017-01-01 Sun>
+:PROPERTIES:
+:ID:       5594d4f1-b1bb-400f-9f3d-e2f9b43e82c3
+:END:
+** Sibling Headings
+:PROPERTIES:
+:ID:       21b8f1f5-14e8-4677-873d-69e0389fdc9e
+:END:
+*** Sibling 1
+:PROPERTIES:
+:ID:       82a4ac3d-9565-4f94-bc84-2bbfd8d7d96c
+:END:
+*** Sibling 2
+:PROPERTIES:
+:ID:       72534efa-e932-460b-ae2d-f044a0074815
+:END:
+*** Sibling 3
+:PROPERTIES:
+:ID:       06aca55e-ce09-46df-80d7-5b52e55d6505
+:END:
+** Archive
+*** TODO Archive One
+:PROPERTIES:
+:ID:       d7668277-f959-43ba-8e85-8a3c76996862
+:END:
+* Finder Tests
+** Match
+*** TODO Blocking Test
+:PROPERTIES:
+:BLOCKER:  match("test&1")
+:ID:       caccd0a6-d400-410a-9018-b0635b07a37e
+:LOGGING:  nil
+:END:
+* Relatives Tests
+:PROPERTIES:
+:ID:       c07cf4c1-3693-443a-9d79-b581f7cbd62c
+:END:
+** Parent Heading #1
+:PROPERTIES:
+:ID:       5a35daf7-4957-4588-9a68-21d8763a9e0d
+:END:
+*** [#C] Standard Child Heading
+DEADLINE: <2017-01-07 Sat> SCHEDULED: <2017-01-02 Mon>
+:PROPERTIES:
+:ID:       7c542695-8165-4c8b-b44d-4c12fa009548
+:Effort:   0:01
+:END:
+*** [#B] Child Heading with Children
+DEADLINE: <2017-01-03 Tue> SCHEDULED: <2017-01-03 Tue>
+:PROPERTIES:
+:ID:       c7a986df-8d89-4509-b086-6db429b5607b
+:Effort:   0:03
+:END:
+**** Child Heading One
+:PROPERTIES:
+:ID:       588bbd29-2e07-437f-b74d-f72459b545a1
+:END:
+**** Child Heading Two
+:PROPERTIES:
+:ID:       a7047c81-21ec-46cd-8289-60ad515900ff
+:END:
+*** TODO [#A] Child Heading with TODO
+DEADLINE: <2017-01-01 Sun> SCHEDULED: <2017-01-06 Fri>
+:PROPERTIES:
+:ID:       8c0b31a1-af49-473c-92ea-a5c1c3bace33
+:Effort:   0:02
+:END:
+*** [#B] COMMENT Commented Child Heading
+DEADLINE: <2017-01-08 Sun> SCHEDULED: <2017-01-04 Wed>
+:PROPERTIES:
+:ID:       0a1b9508-17ce-49c5-8ff3-28a0076374f5
+:Effort:   0:06
+:END:
+*** [#A] Archived Child Heading                                   :ARCHIVE:
+DEADLINE: <2017-01-02 Mon> SCHEDULED: <2017-01-01 Sun>
+:PROPERTIES:
+:ID:       a4b6131e-0560-4201-86d5-f32b36363431
+:Effort:   0:05
+:END:
+*** DONE [#C] Child Heading with DONE
+DEADLINE: <2017-01-05 Thu> SCHEDULED: <2017-01-05 Thu>
+:PROPERTIES:
+:ID:       4a1d74a2-b032-47da-a823-b32f5cab0aae
+:Effort:   0:08
+:END:
+** Parent Sub Heading #2
+:PROPERTIES:
+:ID:       4fe67f03-2b35-4708-8c38-54d2c4dfab81
+:END:
