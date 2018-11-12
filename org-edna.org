@@ -70,7 +70,6 @@ From Source:
 
 #+BEGIN_SRC shell
 bzr branch https://bzr.savannah.gnu.org/r/org-edna-el/ org-edna
-make -C org-edna compile autoloads
 #+END_SRC
 
 After that, add the following to your init file (typically .emacs):
@@ -78,7 +77,7 @@ After that, add the following to your init file (typically .emacs):
 #+BEGIN_SRC emacs-lisp
 ;; Only necessary if installing from source
 (add-to-list 'load-path "/full/path/to/org-edna/")
-(load "/path/to/org-edna/org-edna-autoloads.el")
+(require 'org-edna)
 
 ;; Always necessary
 (org-edna-load)
@@ -874,6 +873,30 @@ Sets the effort of all targets according to VALUE:
 :PROPERTIES:
 :CUSTOM_ID: advanced
 :END:
+** Finder Cache
+:PROPERTIES:
+:CUSTOM_ID: cache
+:DESCRIPTION: Making the finders work faster
+:END:
+
+Some finders, ~match~ in particular, can take a long time to run.  Oftentimes,
+this can make it unappealing to use Edna at all, especially with long
+checklists.
+
+The finder cache is one solution to this.  To enable it, set
+~org-edna-finder-use-cache~ to non-nil.  This can be done through the
+customization interface, or manually with ~setq~.
+
+When enabled, the cache will store the results of every finder form for a
+configurable amount of time.  This timeout is controlled by
+~org-edna-finder-cache-timeout~.  The cache is also invalidated if any of the
+results are invalid, which can happen if their target files have been closed.
+
+For example, if there are several entries in a checklist that all use the form
+~match("daily")~ as part of their trigger, the results of that form will be
+cached.  When the next item is marked as DONE, the results will be searched for
+in cache, not recomputed.
+
 ** Conditions
 :PROPERTIES:
 :CUSTOM_ID: conditions
@@ -1238,6 +1261,9 @@ git clone git://orgmode.org/org-mode.git
 #+END_SRC
 
 ** Bugs
+:PROPERTIES:
+:CUSTOM_ID: bugs
+:END:
 
 There are two ways to submit bug reports:
 
@@ -1247,7 +1273,110 @@ There are two ways to submit bug reports:
 When submitting a bug report, be sure to include the Edna form that caused the
 bug, with as much context as possible.
 
-** Development
+** Working with EDE
+:PROPERTIES:
+:CUSTOM_ID: ede
+:DESCRIPTION: And all its quirks
+:END:
+
+Our build system uses EDE.  EDE can be a little finicky at times, but we feel
+the benefits, namely package dependency handling and Makefile generation,
+outweigh the costs.
+
+One of the issues that many will likely encounter is the error "Corrupt file on
+disk".  This is most often due to EDE not loading all its subprojects as needed.
+If you find yourself dealing with this error often, place the following in your
+.emacs file:
+
+#+begin_src emacs-lisp
+;; Target types needed for working with edna
+(require 'ede/proj-elisp)
+(require 'ede/proj-aux)
+(require 'ede/proj-misc)
+#+end_src
+
+These are the three target types that edna uses: elisp for compilation and
+autoloads; aux for auxiliary files such as documentation; and misc for tests.
+
+When creating a new file, EDE will ask if you want to add it to a target.
+Consult with one of the edna devs for guidance, but usually selecting "none"
+and letting one of us handle it is a good way to go.
+
+** Compiling Edna
+:PROPERTIES:
+:CUSTOM_ID: compiling
+:DESCRIPTION: How to compile Edna
+:END:
+To compile Edna, you've got to have EDE create the Makefile first.  Run the
+following in your Emacs instance to generate the Makefile:
+
+#+begin_example
+M-x ede-proj-regenerate
+#+end_example
+
+This will create the Makefile and point it to the correct version of Org.  The
+targets are as follows:
+
+- compile :: Compiles the code.  This should be done to verify that everything
+             will compile, as ELPA requires this.
+- autoloads :: Creates the autoloads file.  This should also run without
+               problems, so it's a good idea to check this one as well.
+- check :: Runs the tests in ~org-edna-tests.el~.
+
+To run any target, call ~make~:
+
+#+begin_src shell
+make compile autoloads
+#+end_src
+
+The above command compiles Edna and generates the autoloads file.
+
+** Testing Edna
+:PROPERTIES:
+:CUSTOM_ID: testing
+:DESCRIPTION: Ensuring Edna works the way we think she will
+:END:
+
+There are two ways to test Edna: the command-line and through Emacs.
+
+The command-line version is simple, and we ask that you do any final testing
+using this method.  This is how we periodically check to verify that new
+versions of Org mode haven't broken Edna.  It uses the Makefile, which is
+generated with EDE.  See [[#compiling][Compiling Edna]] for how to do that.  Once you have, run
+~make check~ on the command line.
+
+Edna tests are written using ~ERT~, the Emacs Regression Testing framework.  In
+order to use it interactively in Emacs, the following must be done:
+
+1. Load ~org-edna-tests.el~
+2. Run ~M-x ert-run-tests-interactively~
+3. Select which tests to run, or just the letter "t" to run all of them.
+
+Results are printed in their own buffer.  See the ERT documentation for more
+details.
+
+** Before Sending Changes
+:PROPERTIES:
+:CUSTOM_ID: commit_checklist
+:DESCRIPTION: Follow these instructions before sending us anything
+:END:
+
+There are a few rules to follow:
+
+- Verify that any new Edna keywords follow the appropriate naming conventions
+- Any new keywords should be documented
+- We operate on headings, not headlines
+  - Use one word in documentation to avoid confusion
+- Make sure your changes compile
+- Run 'make check' to verify that your mods don't break anything
+- Avoid additional or altered dependencies if at all possible
+  - Exception: New versions of Org mode are allowed
+
+** Developing with Bazaar
+:PROPERTIES:
+:CUSTOM_ID: bzr_dev
+:DESCRIPTION: How to use this strange VCS
+:END:
 
 If you're new to bazaar, we recommend using Emacs's built-in VC package.  It
 eases the overhead of dealing with a brand new VCS with a few standard commands.
@@ -1265,16 +1394,6 @@ $ bzr send -o file-name.txt
 Then, use ~org-edna-submit-bug-report~ and attach "file-name.txt".  We can then
 merge that into the main development branch.
 
-There are a few rules to follow:
-
-- Verify that any new Edna keywords follow the appropriate naming conventions
-- Any new keywords should be documented
-- We operate on headings, not headlines
-  - Use one word to avoid confusion
-- Run 'make check' to verify that your mods don't break anything
-- Avoid additional or altered dependencies if at all possible
-  - Exception: New versions of Org mode are allowed
-
 ** Documentation
 :PROPERTIES:
 :CUSTOM_ID: docs
@@ -1291,6 +1410,16 @@ making any changes:
 :PROPERTIES:
 :DESCRIPTION: List of changes by version
 :END:
+** 1.0beta8
+Quick fix for beta7.
+** 1.0beta7
+Biggest change here is the cache.
+
+- Added cache to the finders to improve performance
+
+- Updated documentation to include EDE
+
+- Added testing and compiling documentation
 ** 1.0beta6
 Lots of parsing fixes.
 

@@ -76,6 +76,7 @@ Actions
 
 Advanced Features
 
+* Finder Cache::                 Making the finders work faster
 * Conditions::                   More than just DONE headings
 * Consideration::                Only some of them
 * Conditional Forms::            If/Then/Else
@@ -102,11 +103,17 @@ Extending Edna
 Contributing
 
 * Bugs::
-* Development::
+* Working with EDE::             And all its quirks
+* Compiling Edna::               How to compile Edna
+* Testing Edna::                 Ensuring Edna works the way we think she will
+* Before Sending Changes::       Follow these instructions before sending us anything
+* Developing with Bazaar::       How to use this strange VCS
 * Documentation::                Improving the documentation
 
 Changelog
 
+* 1.0beta8: 10beta8.
+* 1.0beta7: 10beta7.
 * 1.0beta6: 10beta6.
 * 1.0beta5: 10beta5.
 * 1.0beta4: 10beta4.
@@ -184,13 +191,12 @@ org     9.0.5
    From Source:
 
      bzr branch https://bzr.savannah.gnu.org/r/org-edna-el/ org-edna
-     make -C org-edna compile autoloads
 
    After that, add the following to your init file (typically .emacs):
 
      ;; Only necessary if installing from source
      (add-to-list 'load-path "/full/path/to/org-edna/")
-     (load "/path/to/org-edna/org-edna-autoloads.el")
+     (require 'org-edna)
 
      ;; Always necessary
      (org-edna-load)
@@ -1056,13 +1062,39 @@ Advanced Features
 
 * Menu:
 
+* Finder Cache::                 Making the finders work faster
 * Conditions::                   More than just DONE headings
 * Consideration::                Only some of them
 * Conditional Forms::            If/Then/Else
 * Setting the Properties::       The easy way to set BLOCKER and TRIGGER
 
 
-File: org-edna.info,  Node: Conditions,  Next: Consideration,  Up: Advanced Features
+File: org-edna.info,  Node: Finder Cache,  Next: Conditions,  Up: Advanced Features
+
+Finder Cache
+============
+
+Some finders, ‘match’ in particular, can take a long time to run.
+Oftentimes, this can make it unappealing to use Edna at all, especially
+with long checklists.
+
+   The finder cache is one solution to this.  To enable it, set
+‘org-edna-finder-use-cache’ to non-nil.  This can be done through the
+customization interface, or manually with ‘setq’.
+
+   When enabled, the cache will store the results of every finder form
+for a configurable amount of time.  This timeout is controlled by
+‘org-edna-finder-cache-timeout’.  The cache is also invalidated if any
+of the results are invalid, which can happen if their target files have
+been closed.
+
+   For example, if there are several entries in a checklist that all use
+the form ‘match("daily")’ as part of their trigger, the results of that
+form will be cached.  When the next item is marked as DONE, the results
+will be searched for in cache, not recomputed.
+
+
+File: org-edna.info,  Node: Conditions,  Next: Consideration,  Prev: Finder Cache,  Up: Advanced Features
 
 Conditions
 ==========
@@ -1441,11 +1473,15 @@ We are all happy for any help you may provide.
 * Menu:
 
 * Bugs::
-* Development::
+* Working with EDE::             And all its quirks
+* Compiling Edna::               How to compile Edna
+* Testing Edna::                 Ensuring Edna works the way we think she will
+* Before Sending Changes::       Follow these instructions before sending us anything
+* Developing with Bazaar::       How to use this strange VCS
 * Documentation::                Improving the documentation
 
 
-File: org-edna.info,  Node: Bugs,  Next: Development,  Up: Contributing
+File: org-edna.info,  Node: Bugs,  Next: Working with EDE,  Up: Contributing
 
 Bugs
 ====
@@ -1459,10 +1495,111 @@ There are two ways to submit bug reports:
 caused the bug, with as much context as possible.
 
 
-File: org-edna.info,  Node: Development,  Next: Documentation,  Prev: Bugs,  Up: Contributing
+File: org-edna.info,  Node: Working with EDE,  Next: Compiling Edna,  Prev: Bugs,  Up: Contributing
 
-Development
-===========
+Working with EDE
+================
+
+Our build system uses EDE. EDE can be a little finicky at times, but we
+feel the benefits, namely package dependency handling and Makefile
+generation, outweigh the costs.
+
+   One of the issues that many will likely encounter is the error
+“Corrupt file on disk”.  This is most often due to EDE not loading all
+its subprojects as needed.  If you find yourself dealing with this error
+often, place the following in your .emacs file:
+
+     ;; Target types needed for working with edna
+     (require 'ede/proj-elisp)
+     (require 'ede/proj-aux)
+     (require 'ede/proj-misc)
+
+   These are the three target types that edna uses: elisp for
+compilation and autoloads; aux for auxiliary files such as
+documentation; and misc for tests.
+
+   When creating a new file, EDE will ask if you want to add it to a
+target.  Consult with one of the edna devs for guidance, but usually
+selecting “none” and letting one of us handle it is a good way to go.
+
+
+File: org-edna.info,  Node: Compiling Edna,  Next: Testing Edna,  Prev: Working with EDE,  Up: Contributing
+
+Compiling Edna
+==============
+
+To compile Edna, you’ve got to have EDE create the Makefile first.  Run
+the following in your Emacs instance to generate the Makefile:
+
+     M-x ede-proj-regenerate
+
+   This will create the Makefile and point it to the correct version of
+Org.  The targets are as follows:
+
+compile
+     Compiles the code.  This should be done to verify that everything
+     will compile, as ELPA requires this.
+autoloads
+     Creates the autoloads file.  This should also run without problems,
+     so it’s a good idea to check this one as well.
+check
+     Runs the tests in ‘org-edna-tests.el’.
+
+   To run any target, call ‘make’:
+
+     make compile autoloads
+
+   The above command compiles Edna and generates the autoloads file.
+
+
+File: org-edna.info,  Node: Testing Edna,  Next: Before Sending Changes,  Prev: Compiling Edna,  Up: Contributing
+
+Testing Edna
+============
+
+There are two ways to test Edna: the command-line and through Emacs.
+
+   The command-line version is simple, and we ask that you do any final
+testing using this method.  This is how we periodically check to verify
+that new versions of Org mode haven’t broken Edna.  It uses the
+Makefile, which is generated with EDE. See *note Compiling Edna:: for
+how to do that.  Once you have, run ‘make check’ on the command line.
+
+   Edna tests are written using ‘ERT’, the Emacs Regression Testing
+framework.  In order to use it interactively in Emacs, the following
+must be done:
+
+  1. Load ‘org-edna-tests.el’
+  2. Run ‘M-x ert-run-tests-interactively’
+  3. Select which tests to run, or just the letter “t” to run all of
+     them.
+
+   Results are printed in their own buffer.  See the ERT documentation
+for more details.
+
+
+File: org-edna.info,  Node: Before Sending Changes,  Next: Developing with Bazaar,  Prev: Testing Edna,  Up: Contributing
+
+Before Sending Changes
+======================
+
+There are a few rules to follow:
+
+   • Verify that any new Edna keywords follow the appropriate naming
+     conventions
+   • Any new keywords should be documented
+   • We operate on headings, not headlines
+        • Use one word in documentation to avoid confusion
+   • Make sure your changes compile
+   • Run ’make check’ to verify that your mods don’t break anything
+   • Avoid additional or altered dependencies if at all possible
+        • Exception: New versions of Org mode are allowed
+
+
+File: org-edna.info,  Node: Developing with Bazaar,  Next: Documentation,  Prev: Before Sending Changes,  Up: Contributing
+
+Developing with Bazaar
+======================
 
 If you’re new to bazaar, we recommend using Emacs’s built-in VC package.
 It eases the overhead of dealing with a brand new VCS with a few
@@ -1478,19 +1615,8 @@ Emacs, this is C-h r m Introduction to VC RET).
    Then, use ‘org-edna-submit-bug-report’ and attach “file-name.txt”.
 We can then merge that into the main development branch.
 
-   There are a few rules to follow:
-
-   • Verify that any new Edna keywords follow the appropriate naming
-     conventions
-   • Any new keywords should be documented
-   • We operate on headings, not headlines
-        • Use one word to avoid confusion
-   • Run ’make check’ to verify that your mods don’t break anything
-   • Avoid additional or altered dependencies if at all possible
-        • Exception: New versions of Org mode are allowed
-
 
-File: org-edna.info,  Node: Documentation,  Prev: Development,  Up: Contributing
+File: org-edna.info,  Node: Documentation,  Prev: Developing with Bazaar,  Up: Contributing
 
 Documentation
 =============
@@ -1511,6 +1637,8 @@ Changelog
 
 * Menu:
 
+* 1.0beta8: 10beta8.
+* 1.0beta7: 10beta7.
 * 1.0beta6: 10beta6.
 * 1.0beta5: 10beta5.
 * 1.0beta4: 10beta4.
@@ -1518,7 +1646,29 @@ Changelog
 * 1.0beta2: 10beta2.
 
 
-File: org-edna.info,  Node: 10beta6,  Next: 10beta5,  Up: Changelog
+File: org-edna.info,  Node: 10beta8,  Next: 10beta7,  Up: Changelog
+
+1.0beta8
+========
+
+Quick fix for beta7.
+
+
+File: org-edna.info,  Node: 10beta7,  Next: 10beta6,  Prev: 10beta8,  Up: Changelog
+
+1.0beta7
+========
+
+Biggest change here is the cache.
+
+   • Added cache to the finders to improve performance
+
+   • Updated documentation to include EDE
+
+   • Added testing and compiling documentation
+
+
+File: org-edna.info,  Node: 10beta6,  Next: 10beta5,  Prev: 10beta7,  Up: Changelog
 
 1.0beta6
 ========
@@ -1610,72 +1760,79 @@ Big release here, with three new features.
 
 Tag Table:
 Node: Top225
-Node: Copying3693
-Node: Introduction4515
-Node: Installation and Setup5463
-Node: Basic Operation6256
-Node: Blockers8107
-Node: Triggers8393
-Node: Syntax8655
-Node: Basic Features9345
-Node: Finders9648
-Node: ancestors11413
-Node: children12007
-Node: descendants12417
-Node: file12939
-Node: first-child13688
-Node: ids13948
-Node: match14609
-Node: next-sibling15247
-Node: next-sibling-wrap15504
-Node: olp15818
-Node: org-file16230
-Node: parent16875
-Node: previous-sibling17073
-Node: previous-sibling-wrap17334
-Node: relatives17613
-Node: rest-of-siblings21234
-Node: rest-of-siblings-wrap21519
-Node: self21868
-Node: siblings22029
-Node: siblings-wrap22266
-Node: Actions22570
-Node: Scheduled/Deadline23312
-Node: TODO State26887
-Node: Archive27255
-Node: Chain Property27575
-Node: Clocking27858
-Node: Property28270
-Node: Priority30457
-Node: Tag31026
-Node: Effort31243
-Node: Advanced Features31632
-Node: Conditions32016
-Node: done32631
-Node: headings32795
-Node: todo-state33171
-Node: variable-set33427
-Node: has-property33856
-Node: re-search34125
-Node: Negating Conditions34485
-Node: Consideration34872
-Node: Conditional Forms36441
-Node: Setting the Properties39097
-Node: Extending Edna40181
-Node: Naming Conventions40671
-Node: Finders 141132
-Node: Actions 141494
-Node: Conditions 141953
-Node: Contributing42839
-Node: Bugs43390
-Node: Development43742
-Node: Documentation44895
-Node: Changelog45340
-Node: 10beta645548
-Node: 10beta545808
-Node: 10beta446195
-Node: 10beta346448
-Node: 10beta246887
+Node: Copying4114
+Node: Introduction4936
+Node: Installation and Setup5884
+Node: Basic Operation6608
+Node: Blockers8459
+Node: Triggers8745
+Node: Syntax9007
+Node: Basic Features9697
+Node: Finders10000
+Node: ancestors11765
+Node: children12359
+Node: descendants12769
+Node: file13291
+Node: first-child14040
+Node: ids14300
+Node: match14961
+Node: next-sibling15599
+Node: next-sibling-wrap15856
+Node: olp16170
+Node: org-file16582
+Node: parent17227
+Node: previous-sibling17425
+Node: previous-sibling-wrap17686
+Node: relatives17965
+Node: rest-of-siblings21586
+Node: rest-of-siblings-wrap21871
+Node: self22220
+Node: siblings22381
+Node: siblings-wrap22618
+Node: Actions22922
+Node: Scheduled/Deadline23664
+Node: TODO State27239
+Node: Archive27607
+Node: Chain Property27927
+Node: Clocking28210
+Node: Property28622
+Node: Priority30809
+Node: Tag31378
+Node: Effort31595
+Node: Advanced Features31984
+Node: Finder Cache32432
+Node: Conditions33471
+Node: done34107
+Node: headings34271
+Node: todo-state34647
+Node: variable-set34903
+Node: has-property35332
+Node: re-search35601
+Node: Negating Conditions35961
+Node: Consideration36348
+Node: Conditional Forms37917
+Node: Setting the Properties40573
+Node: Extending Edna41657
+Node: Naming Conventions42147
+Node: Finders 142608
+Node: Actions 142970
+Node: Conditions 143429
+Node: Contributing44315
+Node: Bugs45181
+Node: Working with EDE45538
+Node: Compiling Edna46622
+Node: Testing Edna47491
+Node: Before Sending Changes48472
+Node: Developing with Bazaar49159
+Node: Documentation49900
+Node: Changelog50356
+Node: 10beta850606
+Node: 10beta750718
+Node: 10beta651012
+Node: 10beta551288
+Node: 10beta451675
+Node: 10beta351928
+Node: 10beta252367
 
 End Tag Table
 
