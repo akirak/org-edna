@@ -7,7 +7,7 @@
 ;; Keywords: convenience, text, org
 ;; URL: https://savannah.nongnu.org/projects/org-edna-el/
 ;; Package-Requires: ((emacs "25.1") (seq "2.19") (org "9.0.5"))
-;; Version: 1.0beta8
+;; Version: 1.0
 
 ;; This file is part of GNU Emacs.
 
@@ -96,7 +96,8 @@ Currently, the following are handled:
 
 Everything else is returned as is."
   (pcase arg
-    ((and (pred symbolp)
+    ((and (pred symbolp) ;; Symbol
+          ;; Name matches `org-uuidgen-p'
           (let (pred org-uuidgen-p) (symbol-name arg)))
      (symbol-name arg))
     (_
@@ -127,10 +128,12 @@ If KEY is an invalid Edna keyword, then return nil."
   (cond
    ;; Just return nil if it's not a symbol
    ((or (not key)
-        (not (symbolp key))))
+        (not (symbolp key)))
+    nil)
    ((memq key '(consideration consider))
-    ;; Function is ignored here
-    (cons 'consideration 'identity))
+    ;; Function is ignored here, but `org-edna-describe-keyword' needs this
+    ;; function.
+    (cons 'consideration 'org-edna-handle-consideration))
    ((string-suffix-p "!" (symbol-name key))
     ;; Action
     (let ((func-sym (intern (format "org-edna-action/%s" key))))
@@ -396,7 +399,7 @@ correspond to internal variables."
                                                             ,target-var
                                                             ,consideration-var))))
       ('consideration
-       `(setq ,consideration-var ,(nth 0 args))))))
+       `(setq ,consideration-var ',(nth 0 args))))))
 
 (defun org-edna--expand-sexp-form (form &optional
                                         use-old-scope
@@ -495,7 +498,7 @@ specific form were generated, the results will be regenerated and
 stored in cache.
 
 Minor changes to an Org file, such as setting properties or
-adding unrelated headlines, will be taken into account."
+adding unrelated headings, will be taken into account."
   :group 'org-edna
   :type 'boolean)
 
@@ -503,6 +506,24 @@ adding unrelated headlines, will be taken into account."
   "Maximum age to keep entries in cache, in seconds."
   :group 'org-edna
   :type 'number)
+
+(defvar org-edna-finder-cache-enabled-finders
+  '(org-edna-finder/match
+    org-edna-finder/ids
+    org-edna-finder/olp
+    org-edna-finder/file
+    org-edna-finder/org-file)
+  "List of finders for which cache is enabled.
+
+Only edit this list if you've added custom finders.  Many
+finders, specifically relative finders, rely on the context in
+which they're called.  For these finders, cache will not work
+properly.
+
+The default state of this list contains the built-in finders for
+which context is irrelevant.
+
+Each entry is the function symbol for the finder.")
 
 (defun org-edna--add-to-finder-cache (func-sym args)
   (let* ((results (apply func-sym args))
@@ -547,8 +568,12 @@ following reasons:
      ;; We have an entry created within the allowed interval.
      (t entry))))
 
+(defun org-edna--cache-is-enabled-for-finder (func-sym)
+  (memq func-sym org-edna-finder-cache-enabled-finders))
+
 (defun org-edna--handle-finder (func-sym args)
-  (if (not org-edna-finder-use-cache)
+  (if (or (not org-edna-finder-use-cache)
+          (not (org-edna--cache-is-enabled-for-finder func-sym)))
       ;; Not using cache, so use the function directly.
       (apply func-sym args)
     (let* ((entry (org-edna--get-cache-entry func-sym args)))
@@ -558,6 +583,7 @@ following reasons:
         (org-edna--add-to-finder-cache func-sym args)))))
 
 
+;;; Interactive Functions
 
 (defmacro org-edna-run (change-plist &rest body)
   "Run a TODO state change.
@@ -630,6 +656,7 @@ Remove Edna's workers from `org-trigger-hook' and
   (remove-hook 'org-blocker-hook 'org-edna-blocker-function))
 
 
+;;; Finders
 
 ;; Tag Finder
 (defun org-edna-finder/match (match-spec &optional scope skip)
@@ -641,7 +668,11 @@ MATCH-SPEC may be any valid match string; it is passed straight
 into `org-map-entries'.
 
 SCOPE and SKIP are their counterparts in `org-map-entries'.
-SCOPE defaults to agenda, and SKIP defaults to nil.
+SCOPE defaults to agenda, and SKIP defaults to nil.  Because of
+the different defaults in SCOPE, the symbol 'buffer may also be
+used.  This indicates that scope should be the current buffer,
+honoring any restriction (the equivalent of the nil SCOPE in
+`org-map-entries'.)
 
 * TODO Test
   :PROPERTIES:
@@ -650,7 +681,10 @@ SCOPE defaults to agenda, and SKIP defaults to nil.
 
 \"Test\" will block until all entries tagged \"test\" and
 \"mine\" in the agenda files are marked DONE."
+  ;; Our default is agenda...
   (setq scope (or scope 'agenda))
+  ;; ...but theirs is the buffer
+  (when (eq scope 'buffer) (setq scope nil))
   (org-map-entries
    ;; Find all entries in the agenda files that match the given tag.
    (lambda nil (point-marker))
@@ -776,6 +810,14 @@ Return a list of markers for the descendants."
   (when-let* ((entry-tags (org-get-tags-at)))
     (seq-intersection tags entry-tags)))
 
+(defun org-edna--get-timestamp-time (pom &optional inherit)
+  "Get the timestamp time as a time tuple, of a format suitable
+for calling org-schedule with, or if there is no timestamp,
+returns nil."
+  (let ((time (org-entry-get pom "TIMESTAMP" inherit)))
+    (when time
+      (apply 'encode-time (org-parse-time-string time)))))
+
 (defun org-edna-finder/relatives (&rest options)
   "Find some relative of the current heading.
 
@@ -841,7 +883,9 @@ All arguments are symbols, unless noted otherwise.
 - scheduled-up:    Scheduled time, farthest first
 - scheduled-down:  Scheduled time, closest first
 - deadline-up:     Deadline time, farthest first
-- deadline-down:   Deadline time, closest first"
+- deadline-down:   Deadline time, closest first
+- timestamp-up:    Timestamp time, farthest first
+- timestamp-down:  Timestamp time, closest first"
   (let (targets
         sortfun
         reverse-sort
@@ -994,6 +1038,18 @@ All arguments are symbols, unless noted otherwise.
                (lambda (lhs rhs)
                  (let ((time-lhs (org-get-deadline-time lhs))
                        (time-rhs (org-get-deadline-time rhs)))
+                   (time-less-p time-lhs time-rhs)))))
+        ('timestamp-up
+         (setq sortfun
+               (lambda (lhs rhs)
+                 (let ((time-lhs (org-edna--get-timestamp-time lhs))
+                       (time-rhs (org-edna--get-timestamp-time rhs)))
+                   (not (time-less-p time-lhs time-rhs))))))
+        ('timestamp-down
+         (setq sortfun
+               (lambda (lhs rhs)
+                 (let ((time-lhs (org-edna--get-timestamp-time lhs))
+                       (time-rhs (org-edna--get-timestamp-time rhs)))
                    (time-less-p time-lhs time-rhs)))))))
     (setq filterfuns (nreverse filterfuns))
     (when (and targets sortfun)
@@ -1224,6 +1280,7 @@ which ones will and won't work."
     (list (point-min-marker))))
 
 
+;;; Actions
 
 ;; Set TODO state
 (defun org-edna-action/todo! (_last-entry new-state)
@@ -1250,11 +1307,18 @@ N is an integer.  WHAT can be `day', `month', `year', `minute',
     (org-timestamp-change n what)
     (buffer-string)))
 
+(defun org-edna--property-for-planning-type (type)
+  (pcase type
+    ('scheduled "SCHEDULED")
+    ('deadline "DEADLINE")
+    ('timestamp "TIMESTAMP")
+    (_ "")))
+
 (defun org-edna--get-planning-info (what)
   "Get the planning info for WHAT.
 
-WHAT is either 'scheduled or 'deadline."
-  (org-entry-get nil (if (eq what 'scheduled) "SCHEDULED" "DEADLINE")))
+WHAT is one of 'scheduled, 'deadline, or 'timestamp."
+  (org-entry-get nil (org-edna--property-for-planning-type what)))
 
 ;; Silence the byte-compiler
 (defvar parse-time-weekdays)
@@ -1850,6 +1914,7 @@ Does nothing if the source heading has no property PROPERTY."
     (org-entry-put nil property old-prop)))
 
 
+;;; Conditions
 
 ;; For most conditions, we return true if condition is true and neg is false, or
 ;; if condition is false and neg is true:
@@ -1952,57 +2017,104 @@ starting from target's position."
     (when (org-xor condition neg)
       (format "%s %s in %s" (if neg "Did Not Find" "Found") match (buffer-name)))))
 
+(defun org-edna-condition/has-tags? (neg &rest tags)
+  "Check if the target heading has tags.
+
+Edna Syntax: has-tags?(\"tag1\" \"tag2\"...)
+
+Block if the target heading has any of the tags tag1, tag2, etc."
+  (let* ((condition (apply 'org-edna-entry-has-tags-p tags)))
+    (when (org-xor condition neg)
+      (org-get-heading))))
+
+(defun org-edna--heading-matches (match-string)
+  "Return non-nil if the current heading matches MATCH-STRING."
+  (let* ((matcher (cdr (org-make-tags-matcher match-string)))
+         (todo (org-entry-get nil "TODO"))
+         (tags (org-get-tags-at))
+         (level (org-reduced-level (org-outline-level))))
+    (funcall matcher todo tags level)))
+
+(defun org-edna-condition/matches? (neg match-string)
+  "Matches a heading against a match string.
+
+Edna Syntax: matches?(\"MATCH-STRING\")
+
+Blocks if the target heading matches MATCH-STRING.
+
+MATCH-STRING is a valid match string as passed to
+`org-map-entries'."
+  (let* ((condition (org-edna--heading-matches match-string)))
+    (when (org-xor condition neg)
+      (org-get-heading))))
+
 
+;;; Consideration
 
 (defun org-edna-handle-consideration (consideration blocks)
   "Handle consideration CONSIDERATION.
 
-Edna Syntax: consider(all) [1]
+Edna Syntax: consider(any) [1]
 Edna Syntax: consider(N)   [2]
 Edna Syntax: consider(P)   [3]
-Edna Syntax: consider(any) [4]
+Edna Syntax: consider(all) [4]
 
-Form 1: consider all targets when evaluating conditions.
-Form 2: consider the condition met if only N of the targets pass.
-Form 3: consider the condition met if only P% of the targets pass.
-Form 4: consider the condition met if any target meets it
+A blocker can be read as:
+\"If ANY heading in TARGETS matches CONDITION, block this heading\"
 
-If CONSIDERATION is nil, default to 'all.
+The consideration is \"ANY\".
+
+Form 1 blocks only if any target matches the condition.  This is
+the default.
+
+Form 2 blocks only if at least N targets meet the condition.  N=1
+is the same as 'any'.
+
+Form 3 blocks only if *at least* fraction P of the targets meet
+the condition.  This should be a decimal value between 0 and 1.
+
+Form 4 blocks only if all targets match the condition.
+
+The default consideration is \"any\".
+
+If CONSIDERATION is nil, default to 'any.
 
 The \"consideration\" keyword is also provided.  It functions the
 same as \"consider\"."
-  ;; BLOCKS is a list of blocking entries; if one isn't blocked, its entry will
-  ;; be nil.
-  (let ((consideration (or consideration 'all))
-        (first-block (seq-find #'identity blocks))
-        (total-blocks (seq-length blocks))
-        (fulfilled (seq-count #'not blocks)))
+  ;; BLOCKS is a list of entries that meets the blocking condition; if one isn't
+  ;; blocked, its entry will be nil.
+  (let* ((consideration (or consideration 'any))
+         (first-block (seq-find #'identity blocks))
+         (total-blocks (seq-length blocks))
+         (fulfilled (seq-count #'not blocks))
+         (blocked (- total-blocks fulfilled)))
     (pcase consideration
-      ('all
-       ;; All of them must be fulfilled, so find the first one that isn't.
-       first-block)
       ('any
-       ;; Any of them can be fulfilled, so find the first one that is
+       ;; In order to pass, all of them must be fulfilled, so find the first one
+       ;; that isn't.
+       first-block)
+      ('all
+       ;; All of them must be set to block, so if one of them doesn't block, the
+       ;; entire entry won't block.
        (if (> fulfilled 0)
            ;; Have one fulfilled
            nil
          ;; None of them are fulfilled
          first-block))
       ((pred integerp)
-       ;; A fixed number of them must be fulfilled, so check how many aren't.
-       (let* ((fulfilled (seq-count #'not blocks)))
-         (if (>= fulfilled consideration)
-             nil
-           first-block)))
+       ;; A minimum number of them must meet the blocking condition, so check
+       ;; how many block.
+       (if (>= blocked consideration)
+           first-block
+         nil))
       ((pred floatp)
-       ;; A certain percentage of them must be fulfilled
-       (let* ((fulfilled (seq-count #'not blocks)))
-         (if (>= (/ (float fulfilled) (float total-blocks)) consideration)
-             nil
-           first-block))))))
+       ;; A certain percentage of them must block for the blocker to block.
+       (let* ((float-blocked (/ (float blocked) (float total-blocks))))
+         (if (>= float-blocked consideration)
+             first-block
+           nil))))))
 
 
-
 ;;; Popout editing
 
 (defvar org-edna-edit-original-marker nil)
@@ -2183,7 +2295,7 @@ SUFFIX is an additional suffix to use when matching keywords."
   "Return a list of all allowed Edna keywords for a blocker."
   `(,@(org-edna--collect-finders)
     ,@(org-edna--collect-conditions)
-    "consideration"))
+    "consideration" "consider"))
 
 (defun org-edna-completions-for-trigger ()
   "Return a list of all allowed Edna keywords for a trigger."
@@ -2221,7 +2333,32 @@ PRED, and ACTION."
   (when-let* ((bounds (bounds-of-thing-at-point 'symbol)))
     (list (car bounds) (cdr bounds) 'org-edna-completion-table-function)))
 
+(defun org-edna-describe-keyword (keyword)
+  "Describe the Org Edna keyword KEYWORD.
+
+KEYWORD should be a string for a keyword recognized by edna.
+
+Displays help for KEYWORD in the Help buffer."
+  (interactive
+   (list
+    (completing-read
+     "Keyword: "
+     `(,@(org-edna--collect-finders)
+       ,@(org-edna--collect-actions)
+       ,@(org-edna--collect-conditions)
+       "consideration" "consider")
+     nil ;; No filter predicate
+     t))) ;; require match
+  ;; help-split-fundoc splits the usage info from the rest of the documentation.
+  ;; This avoids having another usage line in the keyword documentation that has
+  ;; nothing to do with how edna expects the function.
+  (pcase-let* ((`(,_type . ,func) (org-edna--function-for-key (intern keyword)))
+               (`(,_usage . ,doc) (help-split-fundoc (documentation func t) func)))
+    (with-help-window (help-buffer)
+      (princ doc))))
+
 
+;;; Bug Reports
 
 (declare-function lm-report-bug "lisp-mnt" (topic))
 

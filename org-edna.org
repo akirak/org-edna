@@ -526,6 +526,8 @@ All arguments are symbols, unless noted otherwise.
 - scheduled-down:  Scheduled time, closest first
 - deadline-up:     Deadline time, farthest first
 - deadline-down:   Deadline time, closest first
+- timestamp-up:    Timestamp time, farthest first
+- timestamp-down:  Timestamp time, closest first
 
 Many of the other finders are shorthand for argument combinations of relative:
 
@@ -692,14 +694,15 @@ PLANNING is either scheduled or deadline.
 
 Examples:
 
-- scheduled!("Mon 09:00") -> Set SCHEDULED to the following Monday at 9:00
-- deadline!("++2h") -> Set DEADLINE to two hours from now.
-- deadline!(copy) deadline!("+1h") -> Copy the source deadline to the target, then increment it by an hour.
-- scheduled!("+1wkdy") -> Set SCHEDULED to the next weekday
-- scheduled!("+1d +wkdy") -> Same as above
-- deadline!("+1m -wkdy") -> Set SCHEDULED up one month, but move backward to find a weekend
-- scheduled!("float 2 Tue Feb") -> Set SCHEDULED to the second Tuesday in the following February
-- scheduled!("float 3 Thu") -> Set SCHEDULED to the third Thursday in the following month
+- scheduled!("Mon 09:00") :: Set SCHEDULED to the following Monday at 9:00
+- deadline!("++2h") :: Set DEADLINE to two hours from now.
+- deadline!(copy) deadline!("+1h") :: Copy the source deadline to the target, then increment it by an hour.
+- scheduled!("+1wkdy") :: Set SCHEDULED to the next weekday
+- scheduled!("+1d +wkdy") :: Same as above
+- deadline!("+1m -wkdy") :: Set DEADLINE up one month, but move backward to find a weekend
+- scheduled!("float 2 Tue Feb") :: Set SCHEDULED to the second Tuesday in the following February
+- scheduled!("float 3 Thu") :: Set SCHEDULED to the third Thursday in the following month
+
 *** TODO State
 :PROPERTIES:
 :CUSTOM_ID: todo!
@@ -712,6 +715,27 @@ Sets the TODO state of the target heading to NEW-STATE.
 
 NEW-STATE may either be a string or a symbol denoting the new TODO state.  It
 can also be the empty string, in which case the TODO state is removed.
+
+Example:
+
+#+BEGIN_SRC org
+,* TODO Heading 1
+  :PROPERTIES:
+  :TRIGGER: next-sibling todo!(DONE)
+  :END:
+,* TODO Heading 2
+#+END_SRC
+
+In this example, when "Heading 1" is marked as DONE, it will also mark "Heading
+2" as DONE:
+
+#+BEGIN_SRC org
+,* DONE Heading 1
+  :PROPERTIES:
+  :TRIGGER: next-sibling todo!(DONE)
+  :END:
+,* DONE Heading 2
+#+END_SRC
 
 *** Archive
 :PROPERTIES:
@@ -736,6 +760,32 @@ nil, Edna will not ask before archiving targets.
 
 Copies PROPERTY from the source entry to all targets.  Does nothing if the
 source heading has no property PROPERTY.
+
+Example:
+
+#+BEGIN_SRC org
+,* TODO Heading 1
+  :PROPERTIES:
+  :COUNTER: 2
+  :TRIGGER: next-sibling chain!("COUNTER")
+  :END:
+,* TODO Heading 2
+#+END_SRC
+
+In this example, when "Heading 1" is marked as DONE, it will copy its COUNTER
+property to "Heading 2":
+
+#+BEGIN_SRC org
+,* DONE Heading 1
+  :PROPERTIES:
+  :COUNTER: 2
+  :TRIGGER: next-sibling chain!("COUNTER")
+  :END:
+,* TODO Heading 2
+  :PROPERTIES:
+  :COUNTER: 2
+  :END:
+#+END_SRC
 
 *** Clocking
 :PROPERTIES:
@@ -804,7 +854,7 @@ Additionally, all special forms will fail if the property is not already set:
 #+begin_src org
 ,* TODO Test
   :PROPERTIES:
-  :TRIGGER: self set-property("TEST" inc)
+  :TRIGGER: self set-property!("TEST" inc)
   :END:
 #+end_src
 
@@ -817,8 +867,8 @@ Deletes the property PROPERTY from all targets.
 
 Examples:
 
-- set-property!("COUNTER" "1") -> Sets the property COUNTER to 1 on all targets
-- set-property!("COUNTER" inc) -> Increments the property COUNTER by 1.  Following the previous example, it would be 2.
+- set-property!("COUNTER" "1") :: Sets the property COUNTER to 1 on all targets
+- set-property!("COUNTER" inc) :: Increments the property COUNTER by 1.  Following the previous example, it would be 2.
 
 *** Priority
 :PROPERTIES:
@@ -861,13 +911,32 @@ e.g. tag1:tag2
 :DESCRIPTION: So much effort!
 :END:
 
-- Syntax: set-effort!(VALUE)
+Modifies the effort of all targets.
 
-Sets the effort of all targets according to VALUE:
+- Syntax: set-effort!("VALUE")
 
-- If VALUE is a string, then the effort is set to VALUE
-- If VALUE is an integer, then set the value to the VALUE'th allowed effort property
-- If VALUE is the symbol 'increment, increment effort
+  Set the effort of all targets to "VALUE".
+
+- Syntax: set-effort!(NUMBER)
+
+  Sets the effort to the NUMBER'th allowed effort property.
+
+- Syntax: set-effort!(increment)
+
+  Increment the effort value.
+
+** Getting Help
+:PROPERTIES:
+:CUSTOM_ID: help
+:DESCRIPTION: Getting some help
+:END:
+
+Edna provides help for any keyword with ~M-x org-edna-describe-keyword~.  When
+invoked, a list of keywords (finders, actions, etc.) known to Edna will be
+provided.  Select any one to get its description.
+
+This description includes the syntax and an explanation of what the keyword
+does.  Some descriptions also contain examples.
 
 * Advanced Features
 :PROPERTIES:
@@ -910,7 +979,7 @@ that target, then the source heading is blocked.
 If no condition is specified, ~!done?~ is used by default, which means block if
 any target heading isn't done.
 
-*** done
+*** Heading is DONE
 :PROPERTIES:
 :CUSTOM_ID: done
 :END:
@@ -919,7 +988,7 @@ any target heading isn't done.
 
 Blocks the source heading if any target heading is DONE.
 
-*** headings
+*** File Has Headings
 :PROPERTIES:
 :CUSTOM_ID: headings
 :END:
@@ -935,7 +1004,7 @@ org-file("refile.org") headings?
 
 The above example blocks if refile.org has any headings.
 
-*** todo-state
+*** Heading TODO State
 :PROPERTIES:
 :CUSTOM_ID: todo-state
 :END:
@@ -946,7 +1015,7 @@ Blocks if any target heading has TODO state set to STATE.
 
 STATE may be a string or a symbol.
 
-*** variable-set
+*** Lisp Variable Set
 :PROPERTIES:
 :CUSTOM_ID: variable-set
 :END:
@@ -958,11 +1027,12 @@ against VALUE.  Block the source heading if VARIABLE = VALUE.
 
 VARIABLE should be a symbol, and VALUE is any valid lisp expression.
 
-#+BEGIN_EXAMPLE
-self variable-set?(test-variable 12)
-#+END_EXAMPLE
+Examples:
 
-*** has-property
+- self variable-set?(test-variable 12) :: Blocks if the variable ~test-variable~ is set to 12.
+- self variable-set?(buffer-file-name "org-edna.org") :: Blocks if the variable ~buffer-file-name~ is set to "org-edna.org".
+
+*** Heading Has Property
 :PROPERTIES:
 :CUSTOM_ID: has-property
 :END:
@@ -971,7 +1041,25 @@ self variable-set?(test-variable 12)
 
 Tests each target for the property PROPERTY, and blocks if it's set to VALUE.
 
-*** re-search
+Example:
+
+#+begin_src org
+,* TODO Take Shower
+  :PROPERTIES:
+  :COUNT:  1
+  :TRIGGER: self set-property!("COUNT" inc) todo!("TODO")
+  :END:
+,* TODO Wash Towels
+  :PROPERTIES:
+  :BLOCKER:  previous-sibling !has-property?("COUNT" "3")
+  :TRIGGER:  previous-sibling set-property!("COUNT" "0")
+  :END:
+#+end_src
+
+In this example, "Wash Towels" can't be completed until the user has showered at
+least three times.
+
+*** Regexp Search
 :PROPERTIES:
 :CUSTOM_ID: re-search
 :DESCRIPTION: Search for a regular expression
@@ -983,7 +1071,57 @@ Blocks the source heading if the regular expression REGEXP is present in any
 of the targets.
 
 The targets are expected to be files, although this will work with other targets
-as well.
+as well.  When given a target heading, the heading's file will be searched.
+*** Checking Tags
+:PROPERTIES:
+:CUSTOM_ID: has-tags
+:DESCRIPTION: Matching against a set of tags
+:END:
+
+- Syntax: has-tags?("TAG1" "TAG2" ...)
+
+Blocks the source heading if any of the target headings have one or more of the
+given tags.
+
+#+begin_src org
+,* TODO Task 1                                                          :tag1:
+,* TODO Task 2                                                     :tag3:tag2:
+,* TODO Task 3
+  :PROPERTIES:
+  :BLOCKER:  rest-of-siblings-wrap has-tags?("tag1" "tag2")
+  :END:
+#+end_src
+
+In the above example, Tasks 1 and 2 will block Task 3.  Task 1 will block it
+because it contains "tag1" as one of its tags, and likewise for Task 2 and
+"tag2".
+
+Note that marking "Task 1" or "Task 2" as DONE will not unblock "Task 3".  If
+you want to set up such a system, use the [[#match][match]] finder.
+*** Matching Headings
+:PROPERTIES:
+:CUSTOM_ID: matches
+:DESCRIPTION: Matching against a match string
+:END:
+
+- Syntax: matches?("MATCH-STRING")
+
+Blocks the source heading if any of the target headings match against
+MATCH-STRING.
+
+MATCH-STRING is a string passed to ~org-map-entries~.
+
+#+begin_src org
+,* TODO Task 1
+,* TODO Task 2
+,* TODO Task 3
+  :PROPERTIES:
+  :BLOCKER:  rest-of-siblings-wrap !matches?("TODO==\"DONE\"")
+  :END:
+#+end_src
+
+In the above example, Tasks 1 and 2 will block Task 3 until they're marked as
+DONE.
 
 *** Negating Conditions
 :PROPERTIES:
@@ -1002,45 +1140,76 @@ tagged "test" does *not* have the property PROP set to "1".
 :DESCRIPTION: Only some of them
 :END:
 
-"Consideration" is a special keyword that's only valid for blockers.
+"Consideration" and "consider" are special keywords that are only valid for
+blockers.
 
-This says "Allow a task to complete if CONSIDERATION of its targets pass the
-given condition".
+A blocker says "If ANY heading in TARGETS meets CONDITION, block this task".
 
-This keyword can allow specifying only a portion of tasks to consider:
+In order to modify the ANY part of that statement, the ~consider~ keyword may be
+used:
 
-1. consider(PERCENT)
-2. consider(NUMBER)
-3. consider(all) (Default)
-4. consider(any)
+1. consider(any)
+2. consider(all)
+3. consider(FRACTION)
+4. consider(NUMBER)
 
-(1) tells the blocker to only consider some portion of the targets.  If at least
-PERCENT of them are in a DONE state, allow the task to be set to DONE.  PERCENT
-must be a decimal, and doesn't need to include a %-sign.
+(1) blocks the current task if any target meets the blocking condition.  This is
+the default case.
 
-(2) tells the blocker to only consider NUMBER of the targets.
+(2) blocks the current task only if all targets meet the blocking condition.
 
-(3) tells the blocker to consider all following targets.
+#+begin_src org
+,* Shovel Snow
+,** TODO Shovel on Monday
+,** TODO Shovel on Tuesday
+,** TODO Shovel on Wednesday
+,** TODO Put shovel away
+   :PROPERTIES:
+   :BLOCKER: consider(all) rest-of-siblings-wrap
+   :END:
+#+end_src
 
-(4) tells the blocker to allow passage if any of the targets pass.
+The above example blocks "Put shovel away" so long as all of the siblings are
+still marked TODO.
 
-A consideration must be specified before the conditions to which it applies:
+(3) blocks the current task if at least FRACTION of the targets meet the
+blocking condition.
 
-#+BEGIN_EXAMPLE
-consider(0.5) siblings match("find_me") consider(all) !done?
-#+END_EXAMPLE
+#+begin_src org
+,* Work
+,** TODO Shovel Snow
+,** TODO Clean room
+,** TODO Vacuum
+,** TODO Eat lunch
+,** TODO Work on Edna
+   :PROPERTIES:
+   :BLOCKER: consider(0.5) rest-of-siblings-wrap
+   :END:
+#+end_src
 
-The above code will allow task completion if at least half the siblings are
-complete, and all tasks tagged "find_me" are complete.
+The above example blocks "Work on Edna" so long as at least half of the siblings
+are marked TODO.  This means that three of them must be completed before
+development can begin on Edna.
 
-#+BEGIN_SRC emacs-lisp
-consider(1) ids(ID1 ID2 ID3) consider(2) ids(ID3 ID4 ID5 ID6)
-#+END_SRC
+(4) blocks the current task if at least NUMBER of the targets meet the blocking
+condition.
 
-The above code will allow task completion if at least one of ID1, ID2, and ID3
-are complete, and at least two of ID3, ID4, ID5, and ID6 are complete.
+#+begin_src org
+,* Work
+,** TODO Shovel Snow
+,** TODO Clean room
+,** TODO Vacuum
+,** TODO Eat lunch
+,** TODO Work on Edna
+   :PROPERTIES:
+   :BLOCKER: consider(2) rest-of-siblings-wrap
+   :END:
+#+end_src
 
-If no consideration is given, ALL is assumed.
+The above example blocks "Work on Edna" so long as two of the siblings are
+marked TODO.  This means that NUMBER=1 is the same as specifying ~any~.
+
+A consideration must be specified before the conditions to which it applies.
 
 Both "consider" and "consideration" are valid keywords; they both mean the same
 thing.
@@ -1099,18 +1268,19 @@ trigger the original until the last one is marked DONE.
 Occasionally, you may find that you'd rather execute a form if the condition
 *would* block.  There are two options.
 
-The first is confusing: use ~consider(any)~.  This will tell Edna to pass so
-long as one of the targets meets the condition.  This is the opposite of Edna's
-standard operation, which only allows passage if all targets meet the condition.
+The first is to use ~consider(all)~.  This will tell Edna to block only if all
+of the targets meets the condition, and thus not block if at least one of them
+does not meet the condition.  This is the opposite of Edna's standard operation,
+which only allows passage if all targets meet the condition.
 
 #+begin_src org
 ,* TODO Prepare Tomorrow's Lunch                                     :nightly:
   :PROPERTIES:
-  :TRIGGER:  if consider(any) match("nightly") then ids(12345) todo!(DONE) endif
+  :TRIGGER:  if consider(all) match("nightly") then ids(12345) todo!(DONE) endif
   :END:
 #+end_src
 
-The second is a lot easier to understand: just switch the then and else clauses:
+The second is to switch the then and else clauses:
 
 #+begin_src org
 ,* TODO Prepare Tomorrow's Lunch                                     :nightly:
@@ -1173,6 +1343,12 @@ Scheme to suffix destructive functions with '!' and predicates with '?'.
 
 Thus, one can have an action that files a target, and a finder that finds a
 file.
+
+We recommend that you don't name a finder with a special character at the end of
+its name.  As we devise new ideas, we consider using special characters for
+additional categories of keywords.  Thus, to avoid complications in the future,
+it's best if everyone avoids using characters that may become reserved in the
+future.
 
 ** Finders
 :PROPERTIES:
@@ -1410,6 +1586,16 @@ making any changes:
 :PROPERTIES:
 :DESCRIPTION: List of changes by version
 :END:
+** 1.0
+
+- Various bugs fixes
+  - Fixed parsing of consideration
+  - Limited cache to just the finders that don't depend on current position
+- Added "buffer" option for match finder
+- Added timestamp sorting to relatives finder
+- Inverted meaning of consideration to avoid confusion
+- Added [[#has-tags][has-tags?]] and [[#matches][matches?]] conditions
+
 ** 1.0beta8
 Quick fix for beta7.
 ** 1.0beta7

@@ -1,4 +1,5 @@
 #+STARTUP: nologdone
+#+STARTUP: indent
 #+PROPERTY: Effort_ALL 0:01 0:02 0:03
 #+PROPERTY: COUNTER_ALL a b c d
 
@@ -21,7 +22,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #+END_QUOTE
 * Test Pool
 ** TODO Tagged Heading 1                                            :1:test:
+:PROPERTIES:
+:ID:       0fa0d4dd-40f2-4251-a558-4c6e2898c2df
+:END:
 ** TODO Tagged Heading 2                                            :1:test:
+:PROPERTIES:
+:ID:       30957f69-8c31-4a13-86ff-f0c5026fb65d
+:END:
 ** TODO ID Heading 1
 :PROPERTIES:
 :ID:       0d491588-7da3-43c5-b51a-87fbd34f79f7
@@ -33,25 +40,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 :LOGGING:  nil
 :END:
 ** TODO ID Heading 3
-SCHEDULED: <2000-01-15 Sat 00:00>
+DEADLINE: <2000-01-15 Sat 00:00> SCHEDULED: <2000-01-15 Sat 00:00>
 :PROPERTIES:
 :ID:       97e6b0f0-40c4-464f-b760-6e5ca9744eb5
 :END:
+<2000-01-15 Sat 00:00>
 ** DONE ID Heading 4
 :PROPERTIES:
 :ID:       7d4d564b-18b2-445c-a0c8-b1b3fb9ad29e
 :END:
 ** Scheduled Headings
 *** TODO Scheduled Heading 1
-SCHEDULED: <2017-01-01 Sun>
+DEADLINE: <2017-01-01 Sun> SCHEDULED: <2017-01-01 Sun>
 :PROPERTIES:
 :ID:       caf27724-0887-4565-9765-ed2f1edcfb16
 :END:
+<2017-01-01 Sun>
 *** TODO Scheduled Heading 2
-SCHEDULED: <2017-01-01 Sun>
+DEADLINE: <2017-01-01 Sun> SCHEDULED: <2017-01-01 Sun>
 :PROPERTIES:
 :ID:       5594d4f1-b1bb-400f-9f3d-e2f9b43e82c3
 :END:
+<2017-01-01 Sun>
 ** Sibling Headings
 :PROPERTIES:
 :ID:       21b8f1f5-14e8-4677-873d-69e0389fdc9e
@@ -95,12 +105,14 @@ DEADLINE: <2017-01-07 Sat> SCHEDULED: <2017-01-02 Mon>
 :ID:       7c542695-8165-4c8b-b44d-4c12fa009548
 :Effort:   0:01
 :END:
+<2017-01-02 Mon>
 *** [#B] Child Heading with Children
 DEADLINE: <2017-01-03 Tue> SCHEDULED: <2017-01-03 Tue>
 :PROPERTIES:
 :ID:       c7a986df-8d89-4509-b086-6db429b5607b
 :Effort:   0:03
 :END:
+<2017-01-03 Tue>
 **** Child Heading One
 :PROPERTIES:
 :ID:       588bbd29-2e07-437f-b74d-f72459b545a1
@@ -115,25 +127,224 @@ DEADLINE: <2017-01-01 Sun> SCHEDULED: <2017-01-06 Fri>
 :ID:       8c0b31a1-af49-473c-92ea-a5c1c3bace33
 :Effort:   0:02
 :END:
+<2017-01-06 Fri>
 *** [#B] COMMENT Commented Child Heading
 DEADLINE: <2017-01-08 Sun> SCHEDULED: <2017-01-04 Wed>
 :PROPERTIES:
 :ID:       0a1b9508-17ce-49c5-8ff3-28a0076374f5
 :Effort:   0:06
 :END:
+<2017-01-04 Wed>
 *** [#A] Archived Child Heading                                   :ARCHIVE:
 DEADLINE: <2017-01-02 Mon> SCHEDULED: <2017-01-01 Sun>
 :PROPERTIES:
 :ID:       a4b6131e-0560-4201-86d5-f32b36363431
 :Effort:   0:05
 :END:
+<2017-01-01 Sun>
 *** DONE [#C] Child Heading with DONE
 DEADLINE: <2017-01-05 Thu> SCHEDULED: <2017-01-05 Thu>
 :PROPERTIES:
 :ID:       4a1d74a2-b032-47da-a823-b32f5cab0aae
 :Effort:   0:08
 :END:
+<2017-01-05 Thu>
 ** Parent Sub Heading #2
 :PROPERTIES:
 :ID:       4fe67f03-2b35-4708-8c38-54d2c4dfab81
 :END:
+* Documentation Tests
+** Ancestors
+:PROPERTIES:
+:ID:       24a0c3bb-7e69-4e9e-bb98-5aba2ff17bb1
+:END:
+*** TODO Heading 1
+**** TODO Heading 2
+**** TODO Heading 3
+***** TODO Heading 4
+****** TODO Heading 5
+:PROPERTIES:
+:BLOCKER:  ancestors
+:END:
+** Descendants
+:PROPERTIES:
+:ID:       cc18dc74-00e8-4081-b46f-e36800041fe7
+:END:
+*** TODO Heading 1
+:PROPERTIES:
+:BLOCKER:  descendants
+:END:
+**** TODO Heading 2
+**** TODO Heading 3
+***** TODO Heading 4
+****** TODO Heading 5
+** Laundry
+:PROPERTIES:
+:ID:       e57ce099-9f37-47f4-a6bb-61a84eb1fbbe
+:END:
+*** TODO Put clothes in washer
+SCHEDULED: <2000-01-15 Sat 00:00>
+:PROPERTIES:
+:TRIGGER: next-sibling scheduled!("++1h")
+:END:
+*** TODO Put clothes in dryer
+:PROPERTIES:
+:TRIGGER: next-sibling scheduled!("Sun 9:00")
+:BLOCKER:  previous-sibling
+:END:
+*** TODO Fold laundry
+:PROPERTIES:
+:TRIGGER: next-sibling scheduled!("++1h")
+:BLOCKER:  previous-sibling
+:END:
+*** TODO Put clothes away
+:PROPERTIES:
+:TRIGGER: next-sibling scheduled!("++1h")
+:BLOCKER:  previous-sibling
+:END:
+** Nightlies - Standard
+:PROPERTIES:
+:ID:       8b6d9820-d943-4622-85c9-4a346e033453
+:END:
+*** TODO Nightly
+DEADLINE: <2000-01-15 Sat +1d>
+:PROPERTIES:
+:ID:       2d94abf9-2d63-46fd-8dc5-cd396555bcfe
+:BLOCKER:  match("nightly")
+:TRIGGER:  match("nightly") todo!(TODO)
+:END:
+*** TODO Prepare Tomorrow's Lunch                                 :nightly:
+:PROPERTIES:
+:TRIGGER:  if match("nightly") then ids(2d94abf9-2d63-46fd-8dc5-cd396555bcfe) todo!(DONE) endif
+:END:
+*** TODO Lock Back Door                                           :nightly:
+:PROPERTIES:
+:TRIGGER:  if match("nightly") then ids(2d94abf9-2d63-46fd-8dc5-cd396555bcfe) todo!(DONE) endif
+:END:
+*** TODO Feed Dog                                                 :nightly:
+:PROPERTIES:
+:TRIGGER:  if match("nightly") then ids(2d94abf9-2d63-46fd-8dc5-cd396555bcfe) todo!(DONE) endif
+:END:
+** Dailies - Consideration
+:PROPERTIES:
+:ID:       630805bb-a864-4cdc-9a6f-0f126e887c66
+:END:
+*** TODO Daily
+DEADLINE: <2000-01-15 Sat +1d>
+:PROPERTIES:
+:ID:       96f7e46c-40c3-4f5b-8f00-81a6e3cb122b
+:TRIGGER:  match("daily") todo!(TODO)
+:END:
+*** TODO Prepare Tomorrow's Lunch                                   :daily:
+:PROPERTIES:
+:TRIGGER:  if consider(all) match("daily") then ids(96f7e46c-40c3-4f5b-8f00-81a6e3cb122b) todo!(DONE) endif
+:END:
+*** TODO Lock Back Door                                             :daily:
+:PROPERTIES:
+:TRIGGER:  if consider(3) match("daily") then ids(96f7e46c-40c3-4f5b-8f00-81a6e3cb122b) todo!(DONE) endif
+:END:
+*** TODO Feed Dog                                                   :daily:
+:PROPERTIES:
+:TRIGGER:  if consider(0.9) match("daily") then ids(96f7e46c-40c3-4f5b-8f00-81a6e3cb122b) todo!(DONE) endif
+:END:
+** Weeklies - Inverted Conditional
+:PROPERTIES:
+:ID:       cf529a5e-1b0c-40c3-8f85-fe2fc4df0ffd
+:END:
+*** TODO Weekly
+DEADLINE: <2000-01-15 Sat +1d>
+:PROPERTIES:
+:ID:       9a0c4b00-64be-4971-a93e-c530cbdd4b2b
+:TRIGGER:  match("weekly") todo!(TODO)
+:END:
+*** TODO Prepare Tomorrow's Lunch                                 :weekly:
+:PROPERTIES:
+:TRIGGER:  if match("weekly") then else ids(9a0c4b00-64be-4971-a93e-c530cbdd4b2b) todo!(DONE) endif
+:END:
+*** TODO Lock Back Door                                           :weekly:
+:PROPERTIES:
+:TRIGGER:  if match("weekly") then else ids(9a0c4b00-64be-4971-a93e-c530cbdd4b2b) todo!(DONE) endif
+:END:
+*** TODO Feed Dog                                                 :weekly:
+:PROPERTIES:
+:TRIGGER:  if match("weekly") then else ids(9a0c4b00-64be-4971-a93e-c530cbdd4b2b) todo!(DONE) endif
+:END:
+** Basic Shower - No Conditional
+:PROPERTIES:
+:ID:       34d67756-927b-4a21-a62d-7989bd138946
+:END:
+*** TODO Take Shower
+:PROPERTIES:
+:COUNT:  0
+:TRIGGER:  self set-property!("COUNT" inc) todo!("TODO")
+:END:
+*** TODO Wash Towels
+:PROPERTIES:
+:BLOCKER:  previous-sibling !has-property?("COUNT" "3")
+:TRIGGER:  previous-sibling set-property!("COUNT" "0")
+:END:
+** Snow Shoveling
+:PROPERTIES:
+:ID:       b1d89bd8-db96-486e-874c-98e2b3a8cbf2
+:END:
+*** TODO Shovel on Monday
+*** TODO Shovel on Tuesday
+*** TODO Shovel on Wednesday
+*** TODO Put shovel away
+:PROPERTIES:
+:BLOCKER: consider(all) rest-of-siblings-wrap
+:END:
+** Work I - Consider Fraction
+:PROPERTIES:
+:ID:       7de5af8b-a226-463f-8360-edd88b99462a
+:END:
+*** TODO Shovel Snow
+*** TODO Clean room
+*** TODO Vacuum
+*** TODO Eat lunch
+*** TODO Work on Edna
+:PROPERTIES:
+:BLOCKER: consider(0.5) rest-of-siblings-wrap
+:END:
+** Work II - Consider Number
+:PROPERTIES:
+:ID:       b79279f7-be3c-45ac-96dc-6e962a5873d4
+:END:
+*** TODO Shovel Snow
+*** TODO Clean room
+*** TODO Vacuum
+*** TODO Eat lunch
+*** TODO Work on Edna
+:PROPERTIES:
+:BLOCKER: consider(2) rest-of-siblings-wrap
+:END:
+** Has Tags
+:PROPERTIES:
+:ID:       6885e932-2c3e-4f20-ac22-5f5a0e791d67
+:END:
+*** Task 1                                                           :tag1:
+*** Task 2                                                      :tag3:tag2:
+*** TODO Task 3
+:PROPERTIES:
+:BLOCKER:  rest-of-siblings-wrap has-tags?("tag1" "tag2")
+:END:
+** Matches
+:PROPERTIES:
+:ID:       8170bf82-c2ea-49e8-bd79-97a95176783f
+:END:
+*** TODO Task 1
+*** TODO Task 2
+*** TODO Task 3
+:PROPERTIES:
+:BLOCKER:  rest-of-siblings-wrap !matches?("TODO==\"DONE\"")
+:END:
+** Chain
+:PROPERTIES:
+:ID:       1bd282ea-9238-47ea-9b4d-dafba19d278b
+:END:
+*** TODO Heading 1
+:PROPERTIES:
+:COUNT:    2
+:TRIGGER:  next-sibling chain!("COUNT")
+:END:
+*** TODO Heading 2

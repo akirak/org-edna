@@ -23,6 +23,7 @@ test: compile
 	-L "." \
 	-l "ert" \
 	-l "org-edna-tests.el" \
+	--eval "(setq org-edna-test-inhibit-messages t)" \
 	-f ert-run-tests-batch-and-exit
 
 include Makefile

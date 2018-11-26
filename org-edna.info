@@ -36,6 +36,7 @@ Basic Features
 
 * Finders::                      How to find targets
 * Actions::                      Next steps
+* Getting Help::                 Getting some help
 
 Finders
 
@@ -84,12 +85,14 @@ Advanced Features
 
 Conditions
 
-* done::
-* headings::
-* todo-state::
-* variable-set::
-* has-property::
-* re-search::                    Search for a regular expression
+* Heading is DONE::
+* File Has Headings::
+* Heading TODO State::
+* Lisp Variable Set::
+* Heading Has Property::
+* Regexp Search::                Search for a regular expression
+* Checking Tags::                Matching against a set of tags
+* Matching Headings::            Matching against a match string
 * Negating Conditions::
 
 
@@ -112,6 +115,7 @@ Contributing
 
 Changelog
 
+* 1.0: 10.
 * 1.0beta8: 10beta8.
 * 1.0beta7: 10beta7.
 * 1.0beta6: 10beta6.
@@ -314,6 +318,7 @@ The most basic features of Edna are *finders* and *actions*.
 
 * Finders::                      How to find targets
 * Actions::                      Next steps
+* Getting Help::                 Getting some help
 
 
 File: org-edna.info,  Node: Finders,  Next: Actions,  Up: Basic Features
@@ -666,6 +671,8 @@ and for similarity to org-depend.
    • scheduled-down: Scheduled time, closest first
    • deadline-up: Deadline time, farthest first
    • deadline-down: Deadline time, closest first
+   • timestamp-up: Timestamp time, farthest first
+   • timestamp-down: Timestamp time, closest first
 
    Many of the other finders are shorthand for argument combinations of
 relative:
@@ -758,7 +765,7 @@ when it reaches the end.
    Identical to the *note rest-of-siblings-wrap:: finder.
 
 
-File: org-edna.info,  Node: Actions,  Prev: Finders,  Up: Basic Features
+File: org-edna.info,  Node: Actions,  Next: Getting Help,  Prev: Finders,  Up: Basic Features
 
 Actions
 =======
@@ -863,19 +870,23 @@ following, PLANNING is either scheduled or deadline.
 
    Examples:
 
-   • scheduled!(“Mon 09:00”) -> Set SCHEDULED to the following Monday at
-     9:00
-   • deadline!(“++2h”) -> Set DEADLINE to two hours from now.
-   • deadline!(copy) deadline!(“+1h”) -> Copy the source deadline to the
-     target, then increment it by an hour.
-   • scheduled!(“+1wkdy”) -> Set SCHEDULED to the next weekday
-   • scheduled!(“+1d +wkdy”) -> Same as above
-   • deadline!(“+1m -wkdy”) -> Set SCHEDULED up one month, but move
-     backward to find a weekend
-   • scheduled!(“float 2 Tue Feb”) -> Set SCHEDULED to the second
-     Tuesday in the following February
-   • scheduled!(“float 3 Thu”) -> Set SCHEDULED to the third Thursday in
-     the following month
+scheduled!(“Mon 09:00”)
+     Set SCHEDULED to the following Monday at 9:00
+deadline!(“++2h”)
+     Set DEADLINE to two hours from now.
+deadline!(copy) deadline!(“+1h”)
+     Copy the source deadline to the target, then increment it by an
+     hour.
+scheduled!(“+1wkdy”)
+     Set SCHEDULED to the next weekday
+scheduled!(“+1d +wkdy”)
+     Same as above
+deadline!(“+1m -wkdy”)
+     Set DEADLINE up one month, but move backward to find a weekend
+scheduled!(“float 2 Tue Feb”)
+     Set SCHEDULED to the second Tuesday in the following February
+scheduled!(“float 3 Thu”)
+     Set SCHEDULED to the third Thursday in the following month
 
 
 File: org-edna.info,  Node: TODO State,  Next: Archive,  Prev: Scheduled/Deadline,  Up: Actions
@@ -890,6 +901,23 @@ TODO State
    NEW-STATE may either be a string or a symbol denoting the new TODO
 state.  It can also be the empty string, in which case the TODO state is
 removed.
+
+   Example:
+
+     * TODO Heading 1
+       :PROPERTIES:
+       :TRIGGER: next-sibling todo!(DONE)
+       :END:
+     * TODO Heading 2
+
+   In this example, when “Heading 1” is marked as DONE, it will also
+mark “Heading 2” as DONE:
+
+     * DONE Heading 1
+       :PROPERTIES:
+       :TRIGGER: next-sibling todo!(DONE)
+       :END:
+     * DONE Heading 2
 
 
 File: org-edna.info,  Node: Archive,  Next: Chain Property,  Prev: TODO State,  Up: Actions
@@ -914,6 +942,28 @@ Chain Property
 
    Copies PROPERTY from the source entry to all targets.  Does nothing
 if the source heading has no property PROPERTY.
+
+   Example:
+
+     * TODO Heading 1
+       :PROPERTIES:
+       :COUNTER: 2
+       :TRIGGER: next-sibling chain!("COUNTER")
+       :END:
+     * TODO Heading 2
+
+   In this example, when “Heading 1” is marked as DONE, it will copy its
+COUNTER property to “Heading 2”:
+
+     * DONE Heading 1
+       :PROPERTIES:
+       :COUNTER: 2
+       :TRIGGER: next-sibling chain!("COUNTER")
+       :END:
+     * TODO Heading 2
+       :PROPERTIES:
+       :COUNTER: 2
+       :END:
 
 
 File: org-edna.info,  Node: Clocking,  Next: Property,  Prev: Chain Property,  Up: Actions
@@ -985,7 +1035,7 @@ already set:
 
      * TODO Test
        :PROPERTIES:
-       :TRIGGER: self set-property("TEST" inc)
+       :TRIGGER: self set-property!("TEST" inc)
        :END:
 
    In the above example, if “Test” is set to DONE, Edna will fail to
@@ -997,10 +1047,11 @@ increment the TEST property, since it doesn’t exist.
 
    Examples:
 
-   • set-property!(“COUNTER” “1”) -> Sets the property COUNTER to 1 on
-     all targets
-   • set-property!(“COUNTER” inc) -> Increments the property COUNTER by
-     1.  Following the previous example, it would be 2.
+set-property!(“COUNTER” “1”)
+     Sets the property COUNTER to 1 on all targets
+set-property!(“COUNTER” inc)
+     Increments the property COUNTER by 1.  Following the previous
+     example, it would be 2.
 
 
 File: org-edna.info,  Node: Priority,  Next: Tag,  Prev: Property,  Up: Actions
@@ -1045,14 +1096,32 @@ File: org-edna.info,  Node: Effort,  Prev: Tag,  Up: Actions
 Effort
 ------
 
-   • Syntax: set-effort!(VALUE)
+Modifies the effort of all targets.
 
-   Sets the effort of all targets according to VALUE:
+   • Syntax: set-effort!(“VALUE”)
 
-   • If VALUE is a string, then the effort is set to VALUE
-   • If VALUE is an integer, then set the value to the VALUE’th allowed
-     effort property
-   • If VALUE is the symbol ’increment, increment effort
+     Set the effort of all targets to “VALUE”.
+
+   • Syntax: set-effort!(NUMBER)
+
+     Sets the effort to the NUMBER’th allowed effort property.
+
+   • Syntax: set-effort!(increment)
+
+     Increment the effort value.
+
+
+File: org-edna.info,  Node: Getting Help,  Prev: Actions,  Up: Basic Features
+
+Getting Help
+============
+
+Edna provides help for any keyword with ‘M-x org-edna-describe-keyword’.
+When invoked, a list of keywords (finders, actions, etc.)  known to Edna
+will be provided.  Select any one to get its description.
+
+   This description includes the syntax and an explanation of what the
+keyword does.  Some descriptions also contain examples.
 
 
 File: org-edna.info,  Node: Advanced Features,  Next: Extending Edna,  Prev: Basic Features,  Up: Top
@@ -1109,29 +1178,31 @@ means block if any target heading isn’t done.
 
 * Menu:
 
-* done::
-* headings::
-* todo-state::
-* variable-set::
-* has-property::
-* re-search::                    Search for a regular expression
+* Heading is DONE::
+* File Has Headings::
+* Heading TODO State::
+* Lisp Variable Set::
+* Heading Has Property::
+* Regexp Search::                Search for a regular expression
+* Checking Tags::                Matching against a set of tags
+* Matching Headings::            Matching against a match string
 * Negating Conditions::
 
 
-File: org-edna.info,  Node: done,  Next: headings,  Up: Conditions
+File: org-edna.info,  Node: Heading is DONE,  Next: File Has Headings,  Up: Conditions
 
-done
-----
+Heading is DONE
+---------------
 
    • Syntax: done?
 
    Blocks the source heading if any target heading is DONE.
 
 
-File: org-edna.info,  Node: headings,  Next: todo-state,  Prev: done,  Up: Conditions
+File: org-edna.info,  Node: File Has Headings,  Next: Heading TODO State,  Prev: Heading is DONE,  Up: Conditions
 
-headings
---------
+File Has Headings
+-----------------
 
    • Syntax: headings?
 
@@ -1143,10 +1214,10 @@ Org heading.  This means that target does not have to be a heading.
    The above example blocks if refile.org has any headings.
 
 
-File: org-edna.info,  Node: todo-state,  Next: variable-set,  Prev: headings,  Up: Conditions
+File: org-edna.info,  Node: Heading TODO State,  Next: Lisp Variable Set,  Prev: File Has Headings,  Up: Conditions
 
-todo-state
-----------
+Heading TODO State
+------------------
 
    • Syntax: todo-state?(STATE)
 
@@ -1155,10 +1226,10 @@ todo-state
    STATE may be a string or a symbol.
 
 
-File: org-edna.info,  Node: variable-set,  Next: has-property,  Prev: todo-state,  Up: Conditions
+File: org-edna.info,  Node: Lisp Variable Set,  Next: Heading Has Property,  Prev: Heading TODO State,  Up: Conditions
 
-variable-set
-------------
+Lisp Variable Set
+-----------------
 
    • Syntax: variable-set?(VARIABLE VALUE)
 
@@ -1167,24 +1238,45 @@ against VALUE. Block the source heading if VARIABLE = VALUE.
 
    VARIABLE should be a symbol, and VALUE is any valid lisp expression.
 
-     self variable-set?(test-variable 12)
+   Examples:
+
+self variable-set?(test-variable 12)
+     Blocks if the variable ‘test-variable’ is set to 12.
+self variable-set?(buffer-file-name “org-edna.org”)
+     Blocks if the variable ‘buffer-file-name’ is set to “org-edna.org”.
 
 
-File: org-edna.info,  Node: has-property,  Next: re-search,  Prev: variable-set,  Up: Conditions
+File: org-edna.info,  Node: Heading Has Property,  Next: Regexp Search,  Prev: Lisp Variable Set,  Up: Conditions
 
-has-property
-------------
+Heading Has Property
+--------------------
 
    • Syntax: has-property?(“PROPERTY” “VALUE”)
 
    Tests each target for the property PROPERTY, and blocks if it’s set
 to VALUE.
 
-
-File: org-edna.info,  Node: re-search,  Next: Negating Conditions,  Prev: has-property,  Up: Conditions
+   Example:
 
-re-search
----------
+     * TODO Take Shower
+       :PROPERTIES:
+       :COUNT:  1
+       :TRIGGER: self set-property!("COUNT" inc) todo!("TODO")
+       :END:
+     * TODO Wash Towels
+       :PROPERTIES:
+       :BLOCKER:  previous-sibling !has-property?("COUNT" "3")
+       :TRIGGER:  previous-sibling set-property!("COUNT" "0")
+       :END:
+
+   In this example, “Wash Towels” can’t be completed until the user has
+showered at least three times.
+
+
+File: org-edna.info,  Node: Regexp Search,  Next: Checking Tags,  Prev: Heading Has Property,  Up: Conditions
+
+Regexp Search
+-------------
 
    • Syntax: re-search?(“REGEXP”)
 
@@ -1192,10 +1284,59 @@ re-search
 in any of the targets.
 
    The targets are expected to be files, although this will work with
-other targets as well.
+other targets as well.  When given a target heading, the heading’s file
+will be searched.
 
 
-File: org-edna.info,  Node: Negating Conditions,  Prev: re-search,  Up: Conditions
+File: org-edna.info,  Node: Checking Tags,  Next: Matching Headings,  Prev: Regexp Search,  Up: Conditions
+
+Checking Tags
+-------------
+
+   • Syntax: has-tags?(“TAG1” “TAG2” ...)
+
+   Blocks the source heading if any of the target headings have one or
+more of the given tags.
+
+     * TODO Task 1                                                          :tag1:
+     * TODO Task 2                                                     :tag3:tag2:
+     * TODO Task 3
+       :PROPERTIES:
+       :BLOCKER:  rest-of-siblings-wrap has-tags?("tag1" "tag2")
+       :END:
+
+   In the above example, Tasks 1 and 2 will block Task 3.  Task 1 will
+block it because it contains “tag1” as one of its tags, and likewise for
+Task 2 and “tag2”.
+
+   Note that marking “Task 1” or “Task 2” as DONE will not unblock “Task
+3”.  If you want to set up such a system, use the *note match:: finder.
+
+
+File: org-edna.info,  Node: Matching Headings,  Next: Negating Conditions,  Prev: Checking Tags,  Up: Conditions
+
+Matching Headings
+-----------------
+
+   • Syntax: matches?(“MATCH-STRING”)
+
+   Blocks the source heading if any of the target headings match against
+MATCH-STRING.
+
+   MATCH-STRING is a string passed to ‘org-map-entries’.
+
+     * TODO Task 1
+     * TODO Task 2
+     * TODO Task 3
+       :PROPERTIES:
+       :BLOCKER:  rest-of-siblings-wrap !matches?("TODO==\"DONE\"")
+       :END:
+
+   In the above example, Tasks 1 and 2 will block Task 3 until they’re
+marked as DONE.
+
+
+File: org-edna.info,  Node: Negating Conditions,  Prev: Matching Headings,  Up: Conditions
 
 Negating Conditions
 -------------------
@@ -1213,45 +1354,74 @@ File: org-edna.info,  Node: Consideration,  Next: Conditional Forms,  Prev: Cond
 Consideration
 =============
 
-“Consideration” is a special keyword that’s only valid for blockers.
+“Consideration” and “consider” are special keywords that are only valid
+for blockers.
 
-   This says “Allow a task to complete if CONSIDERATION of its targets
-pass the given condition”.
+   A blocker says “If ANY heading in TARGETS meets CONDITION, block this
+task”.
 
-   This keyword can allow specifying only a portion of tasks to
-consider:
+   In order to modify the ANY part of that statement, the ‘consider’
+keyword may be used:
 
-  1. consider(PERCENT)
-  2. consider(NUMBER)
-  3. consider(all) (Default)
-  4. consider(any)
+  1. consider(any)
+  2. consider(all)
+  3. consider(FRACTION)
+  4. consider(NUMBER)
 
-   (1) tells the blocker to only consider some portion of the targets.
-If at least PERCENT of them are in a DONE state, allow the task to be
-set to DONE. PERCENT must be a decimal, and doesn’t need to include a
-%-sign.
+   (1) blocks the current task if any target meets the blocking
+condition.  This is the default case.
 
-   (2) tells the blocker to only consider NUMBER of the targets.
+   (2) blocks the current task only if all targets meet the blocking
+condition.
 
-   (3) tells the blocker to consider all following targets.
+     * Shovel Snow
+     ** TODO Shovel on Monday
+     ** TODO Shovel on Tuesday
+     ** TODO Shovel on Wednesday
+     ** TODO Put shovel away
+        :PROPERTIES:
+        :BLOCKER: consider(all) rest-of-siblings-wrap
+        :END:
 
-   (4) tells the blocker to allow passage if any of the targets pass.
+   The above example blocks “Put shovel away” so long as all of the
+siblings are still marked TODO.
+
+   (3) blocks the current task if at least FRACTION of the targets meet
+the blocking condition.
+
+     * Work
+     ** TODO Shovel Snow
+     ** TODO Clean room
+     ** TODO Vacuum
+     ** TODO Eat lunch
+     ** TODO Work on Edna
+        :PROPERTIES:
+        :BLOCKER: consider(0.5) rest-of-siblings-wrap
+        :END:
+
+   The above example blocks “Work on Edna” so long as at least half of
+the siblings are marked TODO. This means that three of them must be
+completed before development can begin on Edna.
+
+   (4) blocks the current task if at least NUMBER of the targets meet
+the blocking condition.
+
+     * Work
+     ** TODO Shovel Snow
+     ** TODO Clean room
+     ** TODO Vacuum
+     ** TODO Eat lunch
+     ** TODO Work on Edna
+        :PROPERTIES:
+        :BLOCKER: consider(2) rest-of-siblings-wrap
+        :END:
+
+   The above example blocks “Work on Edna” so long as two of the
+siblings are marked TODO. This means that NUMBER=1 is the same as
+specifying ‘any’.
 
    A consideration must be specified before the conditions to which it
-applies:
-
-     consider(0.5) siblings match("find_me") consider(all) !done?
-
-   The above code will allow task completion if at least half the
-siblings are complete, and all tasks tagged “find_me” are complete.
-
-     consider(1) ids(ID1 ID2 ID3) consider(2) ids(ID3 ID4 ID5 ID6)
-
-   The above code will allow task completion if at least one of ID1,
-ID2, and ID3 are complete, and at least two of ID3, ID4, ID5, and ID6
-are complete.
-
-   If no consideration is given, ALL is assumed.
+applies.
 
    Both “consider” and “consideration” are valid keywords; they both
 mean the same thing.
@@ -1305,18 +1475,18 @@ it won’t trigger the original until the last one is marked DONE.
    Occasionally, you may find that you’d rather execute a form if the
 condition *would* block.  There are two options.
 
-   The first is confusing: use ‘consider(any)’.  This will tell Edna to
-pass so long as one of the targets meets the condition.  This is the
-opposite of Edna’s standard operation, which only allows passage if all
-targets meet the condition.
+   The first is to use ‘consider(all)’.  This will tell Edna to block
+only if all of the targets meets the condition, and thus not block if at
+least one of them does not meet the condition.  This is the opposite of
+Edna’s standard operation, which only allows passage if all targets meet
+the condition.
 
      * TODO Prepare Tomorrow's Lunch                                     :nightly:
        :PROPERTIES:
-       :TRIGGER:  if consider(any) match("nightly") then ids(12345) todo!(DONE) endif
+       :TRIGGER:  if consider(all) match("nightly") then ids(12345) todo!(DONE) endif
        :END:
 
-   The second is a lot easier to understand: just switch the then and
-else clauses:
+   The second is to switch the then and else clauses:
 
      * TODO Prepare Tomorrow's Lunch                                     :nightly:
        :PROPERTIES:
@@ -1387,6 +1557,12 @@ predicates with ’?’.
 
    Thus, one can have an action that files a target, and a finder that
 finds a file.
+
+   We recommend that you don’t name a finder with a special character at
+the end of its name.  As we devise new ideas, we consider using special
+characters for additional categories of keywords.  Thus, to avoid
+complications in the future, it’s best if everyone avoids using
+characters that may become reserved in the future.
 
 
 File: org-edna.info,  Node: Finders 1,  Next: Actions 1,  Prev: Naming Conventions,  Up: Extending Edna
@@ -1637,6 +1813,7 @@ Changelog
 
 * Menu:
 
+* 1.0: 10.
 * 1.0beta8: 10beta8.
 * 1.0beta7: 10beta7.
 * 1.0beta6: 10beta6.
@@ -1646,7 +1823,23 @@ Changelog
 * 1.0beta2: 10beta2.
 
 
-File: org-edna.info,  Node: 10beta8,  Next: 10beta7,  Up: Changelog
+File: org-edna.info,  Node: 10,  Next: 10beta8,  Up: Changelog
+
+1.0
+===
+
+   • Various bugs fixes
+        • Fixed parsing of consideration
+        • Limited cache to just the finders that don’t depend on current
+          position
+   • Added “buffer” option for match finder
+   • Added timestamp sorting to relatives finder
+   • Inverted meaning of consideration to avoid confusion
+   • Added *note has-tags?: Checking Tags. and *note matches?: Matching
+     Headings. conditions
+
+
+File: org-edna.info,  Node: 10beta8,  Next: 10beta7,  Prev: 10,  Up: Changelog
 
 1.0beta8
 ========
@@ -1760,79 +1953,83 @@ Big release here, with three new features.
 
 Tag Table:
 Node: Top225
-Node: Copying4114
-Node: Introduction4936
-Node: Installation and Setup5884
-Node: Basic Operation6608
-Node: Blockers8459
-Node: Triggers8745
-Node: Syntax9007
-Node: Basic Features9697
-Node: Finders10000
-Node: ancestors11765
-Node: children12359
-Node: descendants12769
-Node: file13291
-Node: first-child14040
-Node: ids14300
-Node: match14961
-Node: next-sibling15599
-Node: next-sibling-wrap15856
-Node: olp16170
-Node: org-file16582
-Node: parent17227
-Node: previous-sibling17425
-Node: previous-sibling-wrap17686
-Node: relatives17965
-Node: rest-of-siblings21586
-Node: rest-of-siblings-wrap21871
-Node: self22220
-Node: siblings22381
-Node: siblings-wrap22618
-Node: Actions22922
-Node: Scheduled/Deadline23664
-Node: TODO State27239
-Node: Archive27607
-Node: Chain Property27927
-Node: Clocking28210
-Node: Property28622
-Node: Priority30809
-Node: Tag31378
-Node: Effort31595
-Node: Advanced Features31984
-Node: Finder Cache32432
-Node: Conditions33471
-Node: done34107
-Node: headings34271
-Node: todo-state34647
-Node: variable-set34903
-Node: has-property35332
-Node: re-search35601
-Node: Negating Conditions35961
-Node: Consideration36348
-Node: Conditional Forms37917
-Node: Setting the Properties40573
-Node: Extending Edna41657
-Node: Naming Conventions42147
-Node: Finders 142608
-Node: Actions 142970
-Node: Conditions 143429
-Node: Contributing44315
-Node: Bugs45181
-Node: Working with EDE45538
-Node: Compiling Edna46622
-Node: Testing Edna47491
-Node: Before Sending Changes48472
-Node: Developing with Bazaar49159
-Node: Documentation49900
-Node: Changelog50356
-Node: 10beta850606
-Node: 10beta750718
-Node: 10beta651012
-Node: 10beta551288
-Node: 10beta451675
-Node: 10beta351928
-Node: 10beta252367
+Node: Copying4346
+Node: Introduction5168
+Node: Installation and Setup6116
+Node: Basic Operation6840
+Node: Blockers8691
+Node: Triggers8977
+Node: Syntax9239
+Node: Basic Features9929
+Node: Finders10283
+Node: ancestors12048
+Node: children12642
+Node: descendants13052
+Node: file13574
+Node: first-child14323
+Node: ids14583
+Node: match15244
+Node: next-sibling15882
+Node: next-sibling-wrap16139
+Node: olp16453
+Node: org-file16865
+Node: parent17510
+Node: previous-sibling17708
+Node: previous-sibling-wrap17969
+Node: relatives18248
+Node: rest-of-siblings21974
+Node: rest-of-siblings-wrap22259
+Node: self22608
+Node: siblings22769
+Node: siblings-wrap23006
+Node: Actions23310
+Node: Scheduled/Deadline24073
+Node: TODO State27587
+Node: Archive28312
+Node: Chain Property28632
+Node: Clocking29385
+Node: Property29797
+Node: Priority31970
+Node: Tag32539
+Node: Effort32756
+Node: Getting Help33140
+Node: Advanced Features33585
+Node: Finder Cache34033
+Node: Conditions35072
+Node: Heading is DONE35878
+Node: File Has Headings36084
+Node: Heading TODO State36506
+Node: Lisp Variable Set36800
+Node: Heading Has Property37468
+Node: Regexp Search38214
+Node: Checking Tags38657
+Node: Matching Headings39559
+Node: Negating Conditions40156
+Node: Consideration40551
+Node: Conditional Forms42735
+Node: Setting the Properties45423
+Node: Extending Edna46507
+Node: Naming Conventions46997
+Node: Finders 147789
+Node: Actions 148151
+Node: Conditions 148610
+Node: Contributing49496
+Node: Bugs50362
+Node: Working with EDE50719
+Node: Compiling Edna51803
+Node: Testing Edna52672
+Node: Before Sending Changes53653
+Node: Developing with Bazaar54340
+Node: Documentation55081
+Node: Changelog55537
+Node: 1055798
+Node: 10beta856300
+Node: 10beta756423
+Node: 10beta656717
+Node: 10beta556993
+Node: 10beta457380
+Node: 10beta357633
+Node: 10beta258072
 
 End Tag Table
 
