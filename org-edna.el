@@ -7,7 +7,7 @@
 ;; Keywords: convenience, text, org
 ;; URL: https://savannah.nongnu.org/projects/org-edna-el/
 ;; Package-Requires: ((emacs "25.1") (seq "2.19") (org "9.0.5"))
-;; Version: 1.0
+;; Version: 1.0.1
 
 ;; This file is part of GNU Emacs.
 
@@ -286,8 +286,10 @@ the remainder of FORM after the current scope was parsed."
                 (unless (eq action-or-condition 'condition)
                   (org-edna--syntax-error "Conditions aren't allowed in this context"
                                           from-string error-pos))))
-             ;; Update state
-             (setq state type)
+             ;; Only update state if we're not breaking.  If we are, then the
+             ;; new state doesn't matter.
+             (unless need-break
+               (setq state type))
              (if need-break ;; changing state
                  ;; Keep current-form on remaining-form so we have it for the
                  ;; next scope, since we didn't process it here.
@@ -417,13 +419,22 @@ OLD-BLOCKING-VAR are used internally."
            (consideration-var (if use-old-scope
                                   old-consideration-var
                                 (cl-gentemp "consideration")))
-           (blocking-var (if use-old-scope
+           ;; The only time we want a new blocking-var is when we are in a
+           ;; conditional scope.  Otherwise, we want the same blocking-var
+           ;; passed through all scopes.  The only time old-blocking-var won't
+           ;; be set is if we are starting a new global scope, or we are
+           ;; starting a conditional scope.
+           (blocking-var (if old-blocking-var
                              old-blocking-var
                            (cl-gentemp "blocking-entry")))
            ;; These won't be used if use-old-scope is non-nil
-           (let-binds `((,target-var ,old-target-var)
-                        (,consideration-var ,old-consideration-var)
-                        (,blocking-var ,old-blocking-var)))
+           (tmp-let-binds `((,target-var ,old-target-var)
+                            (,consideration-var ,old-consideration-var)))
+           ;; Append blocking-var separately to avoid it attempting to let-bind nil.
+           (let-binds (if old-blocking-var
+                        tmp-let-binds
+                        (append tmp-let-binds
+                                (list (list blocking-var nil)))))
            (wrapper-form (if use-old-scope
                              '(progn)
                            `(let (,@let-binds)))))

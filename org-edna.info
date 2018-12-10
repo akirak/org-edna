@@ -93,7 +93,8 @@ Conditions
 * Regexp Search::                Search for a regular expression
 * Checking Tags::                Matching against a set of tags
 * Matching Headings::            Matching against a match string
-* Negating Conditions::
+* Negating Conditions::          Doing the opposite
+* Multiple Conditions::          stacking blockers
 
 
 Extending Edna
@@ -115,6 +116,7 @@ Contributing
 
 Changelog
 
+* 1.0.1: 101.
 * 1.0: 10.
 * 1.0beta8: 10beta8.
 * 1.0beta7: 10beta7.
@@ -1186,7 +1188,8 @@ means block if any target heading isn’t done.
 * Regexp Search::                Search for a regular expression
 * Checking Tags::                Matching against a set of tags
 * Matching Headings::            Matching against a match string
-* Negating Conditions::
+* Negating Conditions::          Doing the opposite
+* Multiple Conditions::          stacking blockers
 
 
 File: org-edna.info,  Node: Heading is DONE,  Next: File Has Headings,  Up: Conditions
@@ -1336,7 +1339,7 @@ MATCH-STRING.
 marked as DONE.
 
 
-File: org-edna.info,  Node: Negating Conditions,  Prev: Matching Headings,  Up: Conditions
+File: org-edna.info,  Node: Negating Conditions,  Next: Multiple Conditions,  Prev: Matching Headings,  Up: Conditions
 
 Negating Conditions
 -------------------
@@ -1347,6 +1350,28 @@ Any condition can be negated by using ’!’ before the condition.
 
    The above example will cause the source heading to block if any
 heading tagged “test” does *not* have the property PROP set to “1”.
+
+
+File: org-edna.info,  Node: Multiple Conditions,  Prev: Negating Conditions,  Up: Conditions
+
+Multiple Conditions
+-------------------
+
+Multiple blocking conditions can be used for a single entry.  The
+heading will block if any of the provided conditions evaluate to true.
+
+     * TODO Heading 1
+       :PROPERTIES:
+       :ID:       1942caf2-caad-4757-b689-3c0029c1d8a5
+       :END:
+     * TODO Heading 2
+     * TODO Heading 3
+       :PROPERTIES:
+       :BLOCKER:  previous-sibling !done? ids(1942caf2-caad-4757-b689-3c0029c1d8a5) !done?
+       :END:
+
+   “Heading 3” will block if either “Heading 1” isn’t done (ids) or
+“Heading 2” isn’t done (previous-sibling).
 
 
 File: org-edna.info,  Node: Consideration,  Next: Conditional Forms,  Prev: Conditions,  Up: Advanced Features
@@ -1813,6 +1838,7 @@ Changelog
 
 * Menu:
 
+* 1.0.1: 101.
 * 1.0: 10.
 * 1.0beta8: 10beta8.
 * 1.0beta7: 10beta7.
@@ -1823,7 +1849,15 @@ Changelog
 * 1.0beta2: 10beta2.
 
 
-File: org-edna.info,  Node: 10,  Next: 10beta8,  Up: Changelog
+File: org-edna.info,  Node: 101,  Next: 10,  Up: Changelog
+
+1.0.1
+=====
+
+   • Fixed bug in multiple blocking conditions
+
+
+File: org-edna.info,  Node: 10,  Next: 10beta8,  Prev: 101,  Up: Changelog
 
 1.0
 ===
@@ -1953,83 +1987,85 @@ Big release here, with three new features.
 
 Tag Table:
 Node: Top225
-Node: Copying4346
-Node: Introduction5168
-Node: Installation and Setup6116
-Node: Basic Operation6840
-Node: Blockers8691
-Node: Triggers8977
-Node: Syntax9239
-Node: Basic Features9929
-Node: Finders10283
-Node: ancestors12048
-Node: children12642
-Node: descendants13052
-Node: file13574
-Node: first-child14323
-Node: ids14583
-Node: match15244
-Node: next-sibling15882
-Node: next-sibling-wrap16139
-Node: olp16453
-Node: org-file16865
-Node: parent17510
-Node: previous-sibling17708
-Node: previous-sibling-wrap17969
-Node: relatives18248
-Node: rest-of-siblings21974
-Node: rest-of-siblings-wrap22259
-Node: self22608
-Node: siblings22769
-Node: siblings-wrap23006
-Node: Actions23310
-Node: Scheduled/Deadline24073
-Node: TODO State27587
-Node: Archive28312
-Node: Chain Property28632
-Node: Clocking29385
-Node: Property29797
-Node: Priority31970
-Node: Tag32539
-Node: Effort32756
-Node: Getting Help33140
-Node: Advanced Features33585
-Node: Finder Cache34033
-Node: Conditions35072
-Node: Heading is DONE35878
-Node: File Has Headings36084
-Node: Heading TODO State36506
-Node: Lisp Variable Set36800
-Node: Heading Has Property37468
-Node: Regexp Search38214
-Node: Checking Tags38657
-Node: Matching Headings39559
-Node: Negating Conditions40156
-Node: Consideration40551
-Node: Conditional Forms42735
-Node: Setting the Properties45423
-Node: Extending Edna46507
-Node: Naming Conventions46997
-Node: Finders 147789
-Node: Actions 148151
-Node: Conditions 148610
-Node: Contributing49496
-Node: Bugs50362
-Node: Working with EDE50719
-Node: Compiling Edna51803
-Node: Testing Edna52672
-Node: Before Sending Changes53653
-Node: Developing with Bazaar54340
-Node: Documentation55081
-Node: Changelog55537
-Node: 1055798
-Node: 10beta856300
-Node: 10beta756423
-Node: 10beta656717
-Node: 10beta556993
-Node: 10beta457380
-Node: 10beta357633
-Node: 10beta258072
+Node: Copying4439
+Node: Introduction5261
+Node: Installation and Setup6209
+Node: Basic Operation6933
+Node: Blockers8784
+Node: Triggers9070
+Node: Syntax9332
+Node: Basic Features10022
+Node: Finders10376
+Node: ancestors12141
+Node: children12735
+Node: descendants13145
+Node: file13667
+Node: first-child14416
+Node: ids14676
+Node: match15337
+Node: next-sibling15975
+Node: next-sibling-wrap16232
+Node: olp16546
+Node: org-file16958
+Node: parent17603
+Node: previous-sibling17801
+Node: previous-sibling-wrap18062
+Node: relatives18341
+Node: rest-of-siblings22067
+Node: rest-of-siblings-wrap22352
+Node: self22701
+Node: siblings22862
+Node: siblings-wrap23099
+Node: Actions23403
+Node: Scheduled/Deadline24166
+Node: TODO State27680
+Node: Archive28405
+Node: Chain Property28725
+Node: Clocking29478
+Node: Property29890
+Node: Priority32063
+Node: Tag32632
+Node: Effort32849
+Node: Getting Help33233
+Node: Advanced Features33678
+Node: Finder Cache34126
+Node: Conditions35165
+Node: Heading is DONE36050
+Node: File Has Headings36256
+Node: Heading TODO State36678
+Node: Lisp Variable Set36972
+Node: Heading Has Property37640
+Node: Regexp Search38386
+Node: Checking Tags38829
+Node: Matching Headings39731
+Node: Negating Conditions40328
+Node: Multiple Conditions40751
+Node: Consideration41433
+Node: Conditional Forms43617
+Node: Setting the Properties46305
+Node: Extending Edna47389
+Node: Naming Conventions47879
+Node: Finders 148671
+Node: Actions 149033
+Node: Conditions 149492
+Node: Contributing50378
+Node: Bugs51244
+Node: Working with EDE51601
+Node: Compiling Edna52685
+Node: Testing Edna53554
+Node: Before Sending Changes54535
+Node: Developing with Bazaar55222
+Node: Documentation55963
+Node: Changelog56419
+Node: 10156694
+Node: 1056819
+Node: 10beta857333
+Node: 10beta757456
+Node: 10beta657750
+Node: 10beta558026
+Node: 10beta458413
+Node: 10beta358666
+Node: 10beta259105
 
 End Tag Table
 

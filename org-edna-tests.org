@@ -348,3 +348,16 @@ DEADLINE: <2000-01-15 Sat +1d>
 :TRIGGER:  next-sibling chain!("COUNT")
 :END:
 *** TODO Heading 2
+** Multiple Blockers
+:PROPERTIES:
+:ID:       61e754c2-f292-42b5-8166-e4298dc190d6
+:END:
+*** TODO Heading 1
+:PROPERTIES:
+:ID:       1942caf2-caad-4757-b689-3c0029c1d8a5
+:END:
+*** TODO Heading 2
+*** TODO Heading 3
+:PROPERTIES:
+:BLOCKER:  previous-sibling !done? ids(1942caf2-caad-4757-b689-3c0029c1d8a5) !done?
+:END:
