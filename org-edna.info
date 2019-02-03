@@ -100,9 +100,9 @@ Conditions
 Extending Edna
 
 * Naming Conventions::           How to name new functions
-* Finders: Finders 1.            Making a new finder
-* Actions: Actions 1.            Making a new action
-* Conditions: Conditions 1.      Making a new condition
+* Finders: Finders (1).          Making a new finder
+* Actions: Actions (1).          Making a new action
+* Conditions: Conditions (1).    Making a new condition
 
 Contributing
 
@@ -116,6 +116,7 @@ Contributing
 
 Changelog
 
+* 1.0.2: 102.
 * 1.0.1: 101.
 * 1.0: 10.
 * 1.0beta8: 10beta8.
@@ -142,7 +143,7 @@ Copyright (C) 2017-2018 Free Software Foundation, Inc.
 
      This program is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      General Public License for more details.
 
      You should have received a copy of the GNU General Public License
@@ -271,7 +272,7 @@ Blockers
 ========
 
 A blocker indicates conditions which must be met in order for a heading
-to be marked as DONE. Typically, this will be a list of headings that
+to be marked as DONE.  Typically, this will be a list of headings that
 must be marked as DONE.
 
 
@@ -538,7 +539,7 @@ olp
 
    • Syntax: olp(“FILE” “OLP”)
 
-   Finds the heading given by OLP in FILE. Both arguments are strings.
+   Finds the heading given by OLP in FILE.  Both arguments are strings.
 
      * TODO Test
        :PROPERTIES:
@@ -805,7 +806,7 @@ following, PLANNING is either scheduled or deadline.
 
    • PLANNING!(“DATE[ TIME]”)
 
-     Sets PLANNING to DATE at TIME. If DATE is a weekday instead of a
+     Sets PLANNING to DATE at TIME.  If DATE is a weekday instead of a
      date, then set PLANNING to the following weekday.  If TIME is not
      specified, only a date will be added to the target.
 
@@ -889,6 +890,34 @@ scheduled!(“float 2 Tue Feb”)
      Set SCHEDULED to the second Tuesday in the following February
 scheduled!(“float 3 Thu”)
      Set SCHEDULED to the third Thursday in the following month
+
+* Menu:
+
+* Timestamp Format::             Specifying a timestamp format
+
+
+File: org-edna.info,  Node: Timestamp Format,  Up: Scheduled/Deadline
+
+Timestamp Format
+................
+
+When using one of the planning modifiers, it isn’t always possible to
+deduce how the timestamp format will be chosen if using ++ or –.  The
+following method is used:
+
+  1. If the target heading already has a timestamp, that format is used.
+
+  2. If the modifier with the ++ or – is “h” or “M” (hours or minutes),
+     long format (includes time) is used.
+
+  3. If the property ‘EDNA_TS_FORMAT’ is set on the target heading, its
+     value will be used.  It should be either ‘long’ for long format
+     (includes time) or ‘short’ for short format (does not include
+     time).
+
+  4. The user variable ‘org-edna-timestamp-format’ is the final
+     fallback.  It should be either the symbol ‘long’ or ‘short’.  It
+     defaults to ‘short’.
 
 
 File: org-edna.info,  Node: TODO State,  Next: Archive,  Prev: Scheduled/Deadline,  Up: Actions
@@ -1164,6 +1193,13 @@ the form ‘match("daily")’ as part of their trigger, the results of that
 form will be cached.  When the next item is marked as DONE, the results
 will be searched for in cache, not recomputed.
 
+   When reverting Org mode files, the cache will often be invalidated.
+This isn’t the case for every Org mode file, so we can’t just tell Emacs
+to automatically reset the cache when reverting a file.  Instead, we
+provide the command ‘org-edna-reset-cache’ to reset the finder cache.
+If you notice headings that should be blocking but aren’t while cache is
+enabled, reset the cache and check again.
+
 
 File: org-edna.info,  Node: Conditions,  Next: Consideration,  Prev: Finder Cache,  Up: Advanced Features
 
@@ -1237,7 +1273,7 @@ Lisp Variable Set
    • Syntax: variable-set?(VARIABLE VALUE)
 
    Evaluate VARIABLE when visiting a target, and compare it with ‘equal’
-against VALUE. Block the source heading if VARIABLE = VALUE.
+against VALUE.  Block the source heading if VARIABLE = VALUE.
 
    VARIABLE should be a symbol, and VALUE is any valid lisp expression.
 
@@ -1425,7 +1461,7 @@ the blocking condition.
         :END:
 
    The above example blocks “Work on Edna” so long as at least half of
-the siblings are marked TODO. This means that three of them must be
+the siblings are marked TODO.  This means that three of them must be
 completed before development can begin on Edna.
 
    (4) blocks the current task if at least NUMBER of the targets meet
@@ -1442,7 +1478,7 @@ the blocking condition.
         :END:
 
    The above example blocks “Work on Edna” so long as two of the
-siblings are marked TODO. This means that NUMBER=1 is the same as
+siblings are marked TODO.  This means that NUMBER=1 is the same as
 specifying ‘any’.
 
    A consideration must be specified before the conditions to which it
@@ -1484,7 +1520,7 @@ simple; it’s just if/then/else/endif:
 
    Here’s how that reads:
 
-   “If CONDITION would not block, execute THEN. Otherwise, execute
+   “If CONDITION would not block, execute THEN.  Otherwise, execute
 ELSE.”
 
    For our nightly entries, this looks as follows:
@@ -1565,12 +1601,12 @@ org-edna-TYPE/KEYWORD.
 * Menu:
 
 * Naming Conventions::           How to name new functions
-* Finders: Finders 1.            Making a new finder
-* Actions: Actions 1.            Making a new action
-* Conditions: Conditions 1.      Making a new condition
+* Finders: Finders (1).          Making a new finder
+* Actions: Actions (1).          Making a new action
+* Conditions: Conditions (1).    Making a new condition
 
 
-File: org-edna.info,  Node: Naming Conventions,  Next: Finders 1,  Up: Extending Edna
+File: org-edna.info,  Node: Naming Conventions,  Next: Finders (1),  Up: Extending Edna
 
 Naming Conventions
 ==================
@@ -1590,7 +1626,7 @@ complications in the future, it’s best if everyone avoids using
 characters that may become reserved in the future.
 
 
-File: org-edna.info,  Node: Finders 1,  Next: Actions 1,  Prev: Naming Conventions,  Up: Extending Edna
+File: org-edna.info,  Node: Finders (1),  Next: Actions (1),  Prev: Naming Conventions,  Up: Extending Edna
 
 Finders
 =======
@@ -1604,7 +1640,7 @@ Finders have the form org-edna-finder/KEYWORD, like so:
 or nil if no targets were found.
 
 
-File: org-edna.info,  Node: Actions 1,  Next: Conditions 1,  Prev: Finders 1,  Up: Extending Edna
+File: org-edna.info,  Node: Actions (1),  Next: Conditions (1),  Prev: Finders (1),  Up: Extending Edna
 
 Actions
 =======
@@ -1621,7 +1657,7 @@ target).
    The rest of the arguments are the arguments specified in the form.
 
 
-File: org-edna.info,  Node: Conditions 1,  Prev: Actions 1,  Up: Extending Edna
+File: org-edna.info,  Node: Conditions (1),  Prev: Actions (1),  Up: Extending Edna
 
 Conditions
 ==========
@@ -1701,7 +1737,7 @@ File: org-edna.info,  Node: Working with EDE,  Next: Compiling Edna,  Prev: Bugs
 Working with EDE
 ================
 
-Our build system uses EDE. EDE can be a little finicky at times, but we
+Our build system uses EDE.  EDE can be a little finicky at times, but we
 feel the benefits, namely package dependency handling and Makefile
 generation, outweigh the costs.
 
@@ -1763,7 +1799,7 @@ There are two ways to test Edna: the command-line and through Emacs.
    The command-line version is simple, and we ask that you do any final
 testing using this method.  This is how we periodically check to verify
 that new versions of Org mode haven’t broken Edna.  It uses the
-Makefile, which is generated with EDE. See *note Compiling Edna:: for
+Makefile, which is generated with EDE.  See *note Compiling Edna:: for
 how to do that.  Once you have, run ‘make check’ on the command line.
 
    Edna tests are written using ‘ERT’, the Emacs Regression Testing
@@ -1838,6 +1874,7 @@ Changelog
 
 * Menu:
 
+* 1.0.2: 102.
 * 1.0.1: 101.
 * 1.0: 10.
 * 1.0beta8: 10beta8.
@@ -1849,7 +1886,19 @@ Changelog
 * 1.0beta2: 10beta2.
 
 
-File: org-edna.info,  Node: 101,  Next: 10,  Up: Changelog
+File: org-edna.info,  Node: 102,  Next: 101,  Up: Changelog
+
+1.0.2
+=====
+
+   • Added ‘org-edna-reset-cache’ to allow a user to reset the finder
+     cache
+
+   • Fixed timestamp format bug with scheduled!  and deadline!
+        • See *note Timestamp Format:: for more
+
+
+File: org-edna.info,  Node: 101,  Next: 10,  Prev: 102,  Up: Changelog
 
 1.0.1
 =====
@@ -1987,85 +2036,87 @@ Big release here, with three new features.
 
 Tag Table:
 Node: Top225
-Node: Copying4439
-Node: Introduction5261
-Node: Installation and Setup6209
-Node: Basic Operation6933
-Node: Blockers8784
-Node: Triggers9070
-Node: Syntax9332
-Node: Basic Features10022
-Node: Finders10376
-Node: ancestors12141
-Node: children12735
-Node: descendants13145
-Node: file13667
-Node: first-child14416
-Node: ids14676
-Node: match15337
-Node: next-sibling15975
-Node: next-sibling-wrap16232
-Node: olp16546
-Node: org-file16958
-Node: parent17603
-Node: previous-sibling17801
-Node: previous-sibling-wrap18062
-Node: relatives18341
-Node: rest-of-siblings22067
-Node: rest-of-siblings-wrap22352
-Node: self22701
-Node: siblings22862
-Node: siblings-wrap23099
-Node: Actions23403
-Node: Scheduled/Deadline24166
-Node: TODO State27680
-Node: Archive28405
-Node: Chain Property28725
-Node: Clocking29478
-Node: Property29890
-Node: Priority32063
-Node: Tag32632
-Node: Effort32849
-Node: Getting Help33233
-Node: Advanced Features33678
-Node: Finder Cache34126
-Node: Conditions35165
-Node: Heading is DONE36050
-Node: File Has Headings36256
-Node: Heading TODO State36678
-Node: Lisp Variable Set36972
-Node: Heading Has Property37640
-Node: Regexp Search38386
-Node: Checking Tags38829
-Node: Matching Headings39731
-Node: Negating Conditions40328
-Node: Multiple Conditions40751
-Node: Consideration41433
-Node: Conditional Forms43617
-Node: Setting the Properties46305
-Node: Extending Edna47389
-Node: Naming Conventions47879
-Node: Finders 148671
-Node: Actions 149033
-Node: Conditions 149492
-Node: Contributing50378
-Node: Bugs51244
-Node: Working with EDE51601
-Node: Compiling Edna52685
-Node: Testing Edna53554
-Node: Before Sending Changes54535
-Node: Developing with Bazaar55222
-Node: Documentation55963
-Node: Changelog56419
-Node: 10156694
-Node: 1056819
-Node: 10beta857333
-Node: 10beta757456
-Node: 10beta657750
-Node: 10beta558026
-Node: 10beta458413
-Node: 10beta358666
-Node: 10beta259105
+Node: Copying4453
+Node: Introduction5276
+Node: Installation and Setup6224
+Node: Basic Operation6948
+Node: Blockers8799
+Node: Triggers9086
+Node: Syntax9348
+Node: Basic Features10038
+Node: Finders10392
+Node: ancestors12157
+Node: children12751
+Node: descendants13161
+Node: file13683
+Node: first-child14432
+Node: ids14692
+Node: match15353
+Node: next-sibling15991
+Node: next-sibling-wrap16248
+Node: olp16562
+Node: org-file16975
+Node: parent17620
+Node: previous-sibling17818
+Node: previous-sibling-wrap18079
+Node: relatives18358
+Node: rest-of-siblings22084
+Node: rest-of-siblings-wrap22369
+Node: self22718
+Node: siblings22879
+Node: siblings-wrap23116
+Node: Actions23420
+Node: Scheduled/Deadline24183
+Node: Timestamp Format27771
+Node: TODO State28659
+Node: Archive29384
+Node: Chain Property29704
+Node: Clocking30457
+Node: Property30869
+Node: Priority33042
+Node: Tag33611
+Node: Effort33828
+Node: Getting Help34212
+Node: Advanced Features34657
+Node: Finder Cache35105
+Node: Conditions36553
+Node: Heading is DONE37438
+Node: File Has Headings37644
+Node: Heading TODO State38066
+Node: Lisp Variable Set38360
+Node: Heading Has Property39029
+Node: Regexp Search39775
+Node: Checking Tags40218
+Node: Matching Headings41120
+Node: Negating Conditions41717
+Node: Multiple Conditions42140
+Node: Consideration42822
+Node: Conditional Forms45008
+Node: Setting the Properties47697
+Node: Extending Edna48781
+Node: Naming Conventions49271
+Node: Finders (1)50065
+Node: Actions (1)50431
+Node: Conditions (1)50896
+Node: Contributing51786
+Node: Bugs52652
+Node: Working with EDE53009
+Node: Compiling Edna54094
+Node: Testing Edna54963
+Node: Before Sending Changes55945
+Node: Developing with Bazaar56632
+Node: Documentation57373
+Node: Changelog57829
+Node: 10258118
+Node: 10158398
+Node: 1058535
+Node: 10beta859049
+Node: 10beta759172
+Node: 10beta659466
+Node: 10beta559742
+Node: 10beta460129
+Node: 10beta360382
+Node: 10beta260821
 
 End Tag Table
 

@@ -1210,11 +1210,7 @@ This avoids org-id digging into its internal database."
     ;; The second Monday after Mar 12th, 2000 (Mar 20th)
     (org-edna-action/scheduled! nil "float 2 monday Mar 12")
     (should (string-equal (org-entry-get nil "SCHEDULED")
-                          "<2000-03-20 Mon 00:00>"))
-    ;; Back to Saturday for other tests
-    (org-edna-action/scheduled! nil "2000-01-15 Sat 00:00")
-    (should (string-equal (org-entry-get nil "SCHEDULED")
-                          "<2000-01-15 Sat 00:00>"))))
+                          "<2000-03-20 Mon 00:00>"))))
 
 (ert-deftest org-edna-action-deadline/wkdy ()
   (org-edna-with-test-heading "0d491588-7da3-43c5-b51a-87fbd34f79f7"
@@ -1360,18 +1356,14 @@ This avoids org-id digging into its internal database."
     ;; The second Monday after Mar 12th, 2000 (Mar 20th)
     (org-edna-action/deadline! nil "float 2 monday Mar 12")
     (should (string-equal (org-entry-get nil "DEADLINE")
-                          "<2000-03-20 Mon 00:00>"))
-    ;; Back to Saturday for other tests
-    (org-edna-action/deadline! nil "2000-01-15 Sat 00:00")
-    (should (string-equal (org-entry-get nil "DEADLINE")
-                          "<2000-01-15 Sat 00:00>"))))
+                          "<2000-03-20 Mon 00:00>"))))
 
 (ert-deftest org-edna-action-tag ()
   (org-edna-with-test-heading org-edna-test-id-heading-one
     (org-edna-action/tag! nil "tag")
     (should (equal (org-get-tags) '("tag")))
     (org-edna-action/tag! nil "")
-    (should (equal (org-get-tags) '("")))))
+    (should (equal (org-get-tags) nil))))
 
 (ert-deftest org-edna-action-property ()
   (org-edna-with-test-heading org-edna-test-id-heading-one
@@ -2036,6 +2028,14 @@ the relative finders all still work while cache is enabled."
 
       ;; Verify that 3 is no longer blocked.
       (should (not (org-edna-test-check-block third-pom "Check after Both"))))))
+
+(ert-deftest org-edna-user-test/time-spec ()
+  (org-edna-doc-test-setup "5b63293c-23ef-40e7-ad8e-093e4c1e1464"
+    (pcase-let* ((`(,first-pom ,second-pom ,third-pom) (org-edna-test-children-marks)))
+      (org-edna-test-mark-done first-pom)
+      ;; Test time is 2000-01-15, so this should be a week later
+      (should (string-equal (org-entry-get second-pom "SCHEDULED")
+                            "<2000-01-22 Sat>")))))
 
 (provide 'org-edna-tests)
 

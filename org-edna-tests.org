@@ -361,3 +361,15 @@ DEADLINE: <2000-01-15 Sat +1d>
 :PROPERTIES:
 :BLOCKER:  previous-sibling !done? ids(1942caf2-caad-4757-b689-3c0029c1d8a5) !done?
 :END:
+* User Examples
+** Test to show undesired time spec added to generated SCHEDULED datestamp
+:PROPERTIES:
+:ID:       5b63293c-23ef-40e7-ad8e-093e4c1e1464
+:END:
+*** TODO task 1
+DEADLINE: <2019-02-15 Fri +1y -2w>
+:PROPERTIES:
+:TRIGGER:  next-sibling scheduled!("++7d")
+:END:
+*** TODO task 2
+*** TODO task 3

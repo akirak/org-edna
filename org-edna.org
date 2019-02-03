@@ -6,7 +6,7 @@
 #+STARTUP: overview
 #+STARTUP: indent
 #+TODO: FIXME | FIXED
-#+OPTIONS: toc:2 num:nil timestamp:nil \n:nil |:t ':t email:t
+#+OPTIONS: toc:2 num:nil timestamp:nil \n:nil |:t ':t email:t H:4
 #+OPTIONS: *:t <:t d:nil todo:nil pri:nil tags:not-in-toc -:nil
 
 #+TEXINFO_DIR_CATEGORY: Emacs
@@ -703,6 +703,28 @@ Examples:
 - scheduled!("float 2 Tue Feb") :: Set SCHEDULED to the second Tuesday in the following February
 - scheduled!("float 3 Thu") :: Set SCHEDULED to the third Thursday in the following month
 
+**** Timestamp Format
+:PROPERTIES:
+:CUSTOM_ID: ts_format
+:DESCRIPTION: Specifying a timestamp format
+:END:
+
+When using one of the planning modifiers, it isn't always possible to deduce how
+the timestamp format will be chosen if using ++ or --.  The following method is
+used:
+
+1. If the target heading already has a timestamp, that format is used.
+
+2. If the modifier with the ++ or -- is "h" or "M" (hours or minutes), long
+   format (includes time) is used.
+
+3. If the property ~EDNA_TS_FORMAT~ is set on the target heading, its value will
+   be used.  It should be either ~long~ for long format (includes time) or
+   ~short~ for short format (does not include time).
+
+4. The user variable ~org-edna-timestamp-format~ is the final fallback.  It
+   should be either the symbol ~long~ or ~short~.  It defaults to ~short~.
+
 *** TODO State
 :PROPERTIES:
 :CUSTOM_ID: todo!
@@ -941,6 +963,7 @@ does.  Some descriptions also contain examples.
 * Advanced Features
 :PROPERTIES:
 :CUSTOM_ID: advanced
+:DESCRIPTION: Be careful in here
 :END:
 ** Finder Cache
 :PROPERTIES:
@@ -965,6 +988,13 @@ For example, if there are several entries in a checklist that all use the form
 ~match("daily")~ as part of their trigger, the results of that form will be
 cached.  When the next item is marked as DONE, the results will be searched for
 in cache, not recomputed.
+
+When reverting Org mode files, the cache will often be invalidated.  This isn't
+the case for every Org mode file, so we can't just tell Emacs to automatically
+reset the cache when reverting a file.  Instead, we provide the command
+~org-edna-reset-cache~ to reset the finder cache.  If you notice headings that
+should be blocking but aren't while cache is enabled, reset the cache and check
+again.
 
 ** Conditions
 :PROPERTIES:
@@ -1611,6 +1641,11 @@ making any changes:
 :PROPERTIES:
 :DESCRIPTION: List of changes by version
 :END:
+** 1.0.2
+- Added ~org-edna-reset-cache~ to allow a user to reset the finder cache
+
+- Fixed timestamp format bug with scheduled! and deadline!
+  - See [[#ts_format][Timestamp Format]] for more
 ** 1.0.1
 - Fixed bug in multiple blocking conditions
 ** 1.0

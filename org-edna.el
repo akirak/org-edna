@@ -7,7 +7,7 @@
 ;; Keywords: convenience, text, org
 ;; URL: https://savannah.nongnu.org/projects/org-edna-el/
 ;; Package-Requires: ((emacs "25.1") (seq "2.19") (org "9.0.5"))
-;; Version: 1.0.1
+;; Version: 1.0.2
 
 ;; This file is part of GNU Emacs.
 
@@ -61,6 +61,35 @@ properties used during actions or conditions."
   "Whether Edna should prompt before archiving a target."
   :group 'org-edna
   :type 'boolean)
+
+(defcustom org-edna-timestamp-format 'short
+  "Default timestamp format for scheduling and deadlines.
+
+This is either 'short for short format (no time spec), or
+'long (includes time spec).
+
+When using the schedule! or deadline! actions with the ++
+modifier, the current time will be used as the base time.  This
+leaves the potential for having no \"template\" timestamp to use
+for the format.  This is in contrast to the + modifier, which
+uses the current timestamp's format.
+
+The timestamp is chosen in one of three ways:
+
+1. If the target heading already has a timestamp, that format is
+used.
+
+2. If the modifier \"thing\" is minutes or hours, long format
+will always be used.
+
+3. If the property EDNA_TS_FORMAT is set on the target heading,
+it will be used.  It should be either \"short\" or
+\"long\" (without quotes).
+
+4. Fallback to this variable."
+  :group 'org-edna
+  :type '(choice (const :tag "Short Format" 'short)
+                 (const :tag "Long Format" 'long)))
 
 ;;; Form Parsing
 
@@ -593,6 +622,17 @@ following reasons:
         ;; Adds the entry to the cache, and returns the results.
         (org-edna--add-to-finder-cache func-sym args)))))
 
+(defun org-edna-reset-cache ()
+  "Reset the finder cache.
+
+Use this only if there's a problem with the cache.
+
+When an Org mode buffer is reverted, the cache will be made
+useless for that buffer.  Therefore, it's a good idea to call
+this after reverting Org mode buffers."
+  (interactive)
+  (setq org-edna--finder-cache (make-hash-table :test 'equal)))
+
 
 ;;; Interactive Functions
 
@@ -818,7 +858,7 @@ Return a list of markers for the descendants."
 
 (defun org-edna-entry-has-tags-p (&rest tags)
   "Return non-nil if the current entry has any tags in TAGS."
-  (when-let* ((entry-tags (org-get-tags-at)))
+  (when-let* ((entry-tags (org-get-tags nil t)))
     (seq-intersection tags entry-tags)))
 
 (defun org-edna--get-timestamp-time (pom &optional inherit)
@@ -1390,12 +1430,16 @@ required."
                          ("y" . 5)))
          (regexp (rx-to-string
                   `(and string-start
+                        ;; Match 1: [+-]
                         (submatch (repeat 0 2 (in ?+ ?-)))
+                        ;; Match 2: Digits
                         (submatch (zero-or-more digit))
+                        ;; Match 3: type string (weekday, unit)
                         (submatch (or (any ,@(mapcar 'car type-strings))
                                       "weekday" "wkdy"
                                       ,@weekdays)
                                   word-end)
+                        ;; Match 4 (optional): Landing specifier
                         (zero-or-one
                          (submatch (and (one-or-more " ")
                                         (submatch (zero-or-one (in ?+ ?-)))
@@ -1589,6 +1633,35 @@ DEFAULT (++/--)."
         ;; Return the same arguments as `org-edna--read-date-get-relative' above.
         (list (- abs-days-then abs-days-now) "d" rel)))))
 
+(defun org-edna--determine-timestamp-format (thing old-ts)
+  ;; Returns the argument to pass to `org-timestamp-format':
+  ;; t for long format (with time), nil for short format (no time).
+  ;; thing is a symbol: year, month, day, hour, minute
+  ;; old-ts is a timestamp string for the current entry
+  (let* ((spec-ts-format (org-entry-get nil "EDNA_TS_FORMAT")))
+    (cond
+     ;; An old timestamp exists, so use that format.
+     (old-ts
+      ;; Returns t for long, nil for short, as we do.
+      (org-timestamp-has-time-p
+       (org-timestamp-from-string old-ts)))
+     ;; If THING is minutes or hours, then a timestamp is required.
+     ((memq thing '(minute hour)) t)
+     ;; User specified the EDNA_TS_FORMAT property, so use it.
+     (spec-ts-format
+      (pcase spec-ts-format
+        ("long" t)
+        ("short" nil)
+        (_ (error "Unknown Edna timestamp format %s; expected \"long\" or \"short\"" spec-ts-format))))
+     ;; Fallback to customizable variable.
+     (t
+      (pcase org-edna-timestamp-format
+        (`long t)
+        (`short nil)
+        (_ (error "Invalid value for org-edna-timestamp-format %s; expected 'long or 'short"
+                  org-edna-timestamp-format)))))))
+
+
 (defun org-edna--handle-planning (type last-entry args)
   "Handle planning of type TYPE.
 
@@ -1599,7 +1672,6 @@ ARGS is a list of arguments; currently, only the first is used."
          (this-ts (org-edna--get-planning-info type))
          (this-time (and this-ts (org-time-string-to-time this-ts)))
          (current (org-current-time))
-         (current-ts (format-time-string (org-time-stamp-format t) current))
          (type-map '(("y" . year)
                      ("m" . month)
                      ("d" . day)
@@ -1615,16 +1687,20 @@ ARGS is a list of arguments; currently, only the first is used."
       (org-add-planning-info type last-ts))
      ((string-match-p "\\`float " arg)
       (pcase-let* ((`(,n ,what-string ,def) (org-edna--float-time arg this-time current))
-                   (ts (if def current-ts this-ts))
-                   (what (cdr (assoc-string what-string type-map))))
+                   (what (cdr (assoc-string what-string type-map)))
+                   (ts-format (org-edna--determine-timestamp-format what this-ts))
+                   (current-ts (format-time-string (org-time-stamp-format ts-format) current))
+                   (ts (if def current-ts this-ts)))
         (org--deadline-or-schedule nil type (org-edna--mod-timestamp ts n what))))
      ((string-match-p "\\`[+-]" arg)
       ;; Starts with a + or -, so assume we're incrementing a timestamp
       ;; We support hours and minutes, so this must be supported separately,
       ;; since org-read-date-analyze doesn't
       (pcase-let* ((`(,n ,what-string ,def) (org-edna--read-date-get-relative arg this-time current))
-                   (ts (if def current-ts this-ts))
-                   (what (cdr (assoc-string what-string type-map))))
+                   (what (cdr (assoc-string what-string type-map)))
+                   (ts-format (org-edna--determine-timestamp-format what this-ts))
+                   (current-ts (format-time-string (org-time-stamp-format ts-format) current))
+                   (ts (if def current-ts this-ts)))
         ;; Ensure that the source timestamp exists
         (unless ts
           (error "Tried to increment a non-existent timestamp"))
@@ -1683,7 +1759,10 @@ form will set the target's scheduled time to the date of the Nth
 DAYNAME after/before MONTH DAY.  MONTH may be a month string or
 an integer.  Use 0 or leave blank for the following or previous
 month.  DAY is an optional integer.  If not given, it will be
-1 (for forward) or the last day of MONTH (backward)."
+1 (for forward) or the last day of MONTH (backward).
+
+For information on how the new timestamp format is chosen when
+using ++, see `org-edna-timestamp-format'."
   (org-edna--handle-planning 'scheduled last-entry args))
 
 (defun org-edna-action/deadline! (last-entry &rest args)
@@ -1727,7 +1806,10 @@ form will set the target's scheduled time to the date of the Nth
 DAYNAME after/before MONTH DAY.  MONTH may be a month string or
 an integer.  Use 0 or leave blank for the following or previous
 month.  DAY is an optional integer.  If not given, it will be
-1 (for forward) or the last day of MONTH (backward)."
+1 (for forward) or the last day of MONTH (backward).
+
+For information on how the new timestamp format is chosen when
+using ++, see `org-edna-timestamp-format'."
   (org-edna--handle-planning 'deadline last-entry args))
 
 (defun org-edna-action/tag! (_last-entry tags)
@@ -1736,7 +1818,7 @@ month.  DAY is an optional integer.  If not given, it will be
 Edna Syntax: tag!(\"TAGS\")
 
 TAGS is a valid tag specification, such as \":aa:bb:cc:\"."
-  (org-set-tags-to tags))
+  (org-set-tags tags))
 
 (defun org-edna--string-is-numeric-p (string)
   "Return non-nil if STRING is a valid numeric string.
@@ -2042,7 +2124,7 @@ Block if the target heading has any of the tags tag1, tag2, etc."
   "Return non-nil if the current heading matches MATCH-STRING."
   (let* ((matcher (cdr (org-make-tags-matcher match-string)))
          (todo (org-entry-get nil "TODO"))
-         (tags (org-get-tags-at))
+         (tags (org-get-tags nil t))
          (level (org-reduced-level (org-outline-level))))
     (funcall matcher todo tags level)))
 
