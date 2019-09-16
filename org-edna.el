@@ -2679,6 +2679,10 @@ Displays help for KEYWORD in the Help buffer."
          (kill-region begin end)
          (insert (org-edna-edit--propertize-form-string keyword)
                  (or args ""))
+         ;; The string form should be followed by either space or newline,
+         ;; so insert one if there is none.
+         (unless (looking-at "[\n\s]")
+           (insert " "))
          (goto-char begin)
          (org-edna-edit-context-action)))))
 
