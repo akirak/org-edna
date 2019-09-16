@@ -91,6 +91,36 @@ it will be used.  It should be either \"short\" or
   :type '(choice (const :tag "Short Format" 'short)
                  (const :tag "Long Format" 'long)))
 
+;;; Faces
+
+(defface org-edna-edit-form-face
+  '((t :weight bold))
+  "Face for forms in the org-edna-edit buffer.
+
+This face is not used directly.
+Instead, other faces in this group inherit this face."
+  :group 'org-edna)
+
+(defface org-edna-edit-finder-face
+  '((t :inherit link))
+  "Face for  in the org-edna-edit buffer."
+  :group 'org-edna)
+
+(defface org-edna-edit-action-face
+  '((t :inherit org-edna-edit-form-face))
+  "Face for action forms in the org-edna-edit buffer."
+  :group 'org-edna)
+
+(defface org-edna-edit-condition-face
+  '((t :inherit org-edna-edit-form-face))
+  "Face for condition forms in the org-edna-edit buffer."
+  :group 'org-edna)
+
+(defface org-edna-edit-consideration-face
+  '((t :inherit org-edna-edit-form-face))
+  "Face for consideration forms in the org-edna-edit buffer."
+  :group 'org-edna)
+
 ;;; Form Parsing
 
 ;; 3 types of "forms" here
@@ -2489,20 +2519,29 @@ Displays help for KEYWORD in the Help buffer."
                                                           "\n"))
                                          (action #'org-edna-follow-finder))
                                 `((org-edna-finder-markers . ,markers)
-                                  (face . link)
+                                  (face . org-edna-edit-finder-face)
                                   (follow-link . org-edna-follow-finder)
                                   (help-echo . ,help)
                                   (keymap . ,org-edna-edit-finder-map))))
                              ('action
+                              `((face . org-edna-edit-action-face)
+                                ;; (keymap . org-edna-edit-action-map)
+                                )
                               ;; `(org-edna--handle-action ',func ,target-var (point-marker) ',args)
                               )
                              ('condition
+                              `((face . org-edna-edit-condition-face)
+                                ;; (keymap . org-edna-edit-action-map)
+                                )
                               ;; `(setq ,blocking-var (or ,blocking-var
                               ;;                          (org-edna--handle-condition ',func ',mod ',args
                               ;;                                                      ,target-var
                               ;;                                                      ,consideration-var)))
                               )
                              ('consideration
+                              `((face . org-edna-edit-consideration-face)
+                                ;; (keymap . org-edna-edit-action-map)
+                                )
                               ;; `(setq ,consideration-var ',(nth 0 args))
                               ))
                            do (put-text-property start end name value string-form)))))
