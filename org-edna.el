@@ -2505,6 +2505,16 @@ Displays help for KEYWORD in the Help buffer."
               (org-id-get-create))))
     (list id)))
 
+(with-eval-after-load 'ivy
+  (ivy-set-display-transformer
+   'org-edna-ivy-keyword
+   (lambda (keyword)
+     (pcase-let* ((`(,_type . ,func) (org-edna--function-for-key (intern keyword))))
+       (format "%-25s  %s"
+               keyword
+               (propertize (car (split-string (documentation func t) "\n"))
+                           ;; TODO: Add a dedicated face
+                           'face 'font-lock-comment-face))))))
 (defvar org-edna-edit-finder-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?\r] 'org-edna-follow-finder)
