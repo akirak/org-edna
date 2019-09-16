@@ -97,6 +97,13 @@ it will be used.  It should be either \"short\" or
   :group 'org-edna
   :type 'boolean)
 
+(defcustom org-edna-args-reader-alist
+  '((org-edna-finder/ids . org-edna-read-ids))
+  "Alist of functions for interactively reading function arguments."
+  :group 'org-edna
+  :type '(alist :key-type symbol
+                :value-type function))
+
 ;;; Faces
 
 (defface org-edna-edit-form-face
@@ -2491,6 +2498,13 @@ Displays help for KEYWORD in the Help buffer."
     (with-help-window (help-buffer)
       (princ doc))))
 
+(defun org-edna-read-ids (_prompt &optional _initial)
+  "Read an ID of an Org heading."
+  (let ((id (save-window-excursion
+              (org-refile '(4))
+              (org-id-get-create))))
+    (list id)))
+
 (defvar org-edna-edit-finder-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?\r] 'org-edna-follow-finder)
@@ -2703,9 +2717,16 @@ situation, e.g. consideration."
                                   (t
                                    (completing-read keyword-prompt ,keywords
                                                     nil nil nil nil orig-keyword))))))
-              (args (read-from-minibuffer "Args: "
-                                          (when (equal orig-keyword keyword)
-                                            (when orig-args (prin1-to-string orig-args)))))
+              (func (cdr (org-edna--function-for-key keyword)))
+              (args (if-let ((reader (alist-get func org-edna-args-reader-alist)))
+                        (with-current-buffer (marker-buffer orig-marker)
+                          (goto-char orig-marker)
+                          (funcall reader (format "Arguments to %s: " func)
+                                   (when (equal orig-keyword keyword)
+                                     (when orig-args (prin1-to-string orig-args)))))
+                      (read-from-minibuffer "Args: "
+                                            (when (equal orig-keyword keyword)
+                                              (when orig-args (prin1-to-string orig-args))))))
               (newstr (with-current-buffer (marker-buffer orig-marker)
                         (save-excursion
                           (goto-char orig-marker)
