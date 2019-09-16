@@ -2487,6 +2487,7 @@ Displays help for KEYWORD in the Help buffer."
 (defvar org-edna-edit-finder-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?\r] 'org-edna-follow-finder)
+    (org-defkey map "h" 'org-edna-edit-describe-keyword)
     (org-defkey map "o"      'org-edna-edit-display-finder-target)
     map))
 
@@ -2519,6 +2520,7 @@ Displays help for KEYWORD in the Help buffer."
                                                           "\n"))
                                          (action #'org-edna-follow-finder))
                                 `((org-edna-finder-markers . ,markers)
+                                  (org-edna-keyword . ,key)
                                   (face . org-edna-edit-finder-face)
                                   (follow-link . org-edna-follow-finder)
                                   (help-echo . ,help)
@@ -2546,6 +2548,13 @@ Displays help for KEYWORD in the Help buffer."
                               ))
                            do (put-text-property start end name value string-form)))))
   string-form)
+
+(defun org-edna-edit-describe-keyword (pos)
+  "Describe the keyword under point."
+  (interactive "d")
+  (if-let ((keyword (get-char-property pos 'org-edna-keyword)))
+      (org-edna-describe-keyword (symbol-name keyword))
+    (user-error "No keyword at point")))
 
 (defun org-edna-edit-focus-next-form ()
   "Go to the next item with org-edna-form property."
