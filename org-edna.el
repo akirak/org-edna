@@ -2480,10 +2480,13 @@ Displays help for KEYWORD in the Help buffer."
                               (when-let ((markers (condition-case-unless-debug err
                                                       (org-edna--handle-finder func args)
                                                     (error err)))
-                                         (help (save-excursion
-                                                 (goto-char (car markers))
-                                                 (org-format-outline-path
-                                                  (org-get-outline-path t t))))
+                                         (help (mapconcat (lambda (marker)
+                                                            (save-excursion
+                                                              (goto-char marker)
+                                                              (org-format-outline-path
+                                                               (org-get-outline-path t t))))
+                                                          markers
+                                                          "\n"))
                                          (action #'org-edna-follow-finder))
                                 `((org-edna-finder-markers . ,markers)
                                   (face . link)
@@ -2529,25 +2532,40 @@ Displays help for KEYWORD in the Help buffer."
     (when help-string
       (funcall show-help-function help-string))))
 
+(defun org-edna--select-one-marker (markers)
+  "Pick one marker from MARKERS into Org mode."
+  (pcase (length markers)
+    (0 nil)
+    (1 (car markers))
+    (_ (completing-read "Choose a marker:"
+                        (mapcar (lambda (marker)
+                                  (propertize
+                                   (with-current-buffer (marker-buffer marker)
+                                     (goto-char marker)
+                                     (org-format-outline-path
+                                      (org-get-outline-path t t)))
+                                   'marker marker))
+                                markers)))))
+
 (defun org-edna-follow-finder (pos)
   "Follow the finder link at POS."
   (interactive "d")
-  (let ((markers (get-char-property pos 'org-edna-finder-markers)))
-    (pcase markers
-      (`(,marker)
-       (switch-to-buffer-other-window (marker-buffer marker))
-       (goto-char marker)))))
+  (let ((marker (org-edna--select-one-marker
+                 (get-char-property pos 'org-edna-finder-markers))))
+    (when marker
+      (switch-to-buffer-other-window (marker-buffer marker))
+      (goto-char marker))))
 
 (defun org-edna-edit-display-finder-target (pos)
   "Follow the finder link at POS but stay on the current window."
   (interactive "d")
-  (let ((markers (get-char-property pos 'org-edna-finder-markers)))
-    (pcase markers
-      (`(,marker)
-       (let ((orig-window (selected-window)))
-         (switch-to-buffer-other-window (marker-buffer marker))
-         (goto-char marker)
-         (select-window orig-window))))))
+  (let ((marker (org-edna--select-one-marker
+                 (get-char-property pos 'org-edna-finder-markers))))
+    (when marker
+      (let ((orig-window (selected-window)))
+        (switch-to-buffer-other-window (marker-buffer marker))
+        (goto-char marker)
+        (select-window orig-window)))))
 
 
 ;;; Bug Reports
