@@ -2260,6 +2260,8 @@ same as \"consider\"."
     (org-defkey map "\C-c'"         'org-edna-edit-finish)
     (org-defkey map "\C-c\C-q"      'org-edna-edit-abort)
     (org-defkey map "\C-c\C-k"      'org-edna-edit-abort)
+    (org-defkey map "\C-i"          'org-edna-edit-focus-next-form)
+    (org-defkey map [backtab]       'org-edna-edit-focus-previous-form)
     map))
 
 (defun org-edna-edit ()
@@ -2269,8 +2271,9 @@ same as \"consider\"."
   (let* ((heading-point (save-excursion
                           (org-back-to-heading)
                           (point-marker)))
-         (blocker (or (org-entry-get heading-point "BLOCKER") ""))
-         (trigger (or (org-entry-get heading-point "TRIGGER") ""))
+         ;; Insert property values with faces and events
+         (blocker (org-edna-edit--propertize-form-string (or (org-entry-get heading-point "BLOCKER") "")))
+         (trigger (org-edna-edit--propertize-form-string (or (org-entry-get heading-point "TRIGGER") "")))
          (wc (current-window-configuration))
          (sel-win (selected-window)))
     (org-switch-to-buffer-other-window org-edna-edit-buffer-name)
@@ -2302,8 +2305,9 @@ the source buffer.  Finish with `C-c C-c' or abort with `C-c C-k'\n\n")
 (defun org-edna-edit-finish ()
   "Finish an Edna property edit."
   (interactive)
-  (let ((blocker (org-edna-edit-blocker-section-text))
-        (trigger (org-edna-edit-trigger-section-text))
+  ;; Remove properties from the values
+  (let ((blocker (substring-no-properties (org-edna-edit-blocker-section-text)))
+        (trigger (substring-no-properties (org-edna-edit-trigger-section-text)))
         (pos-marker org-edna-edit-original-marker)
         (wc org-window-configuration)
         (sel-win org-selected-window))
@@ -2449,6 +2453,101 @@ Displays help for KEYWORD in the Help buffer."
                (`(,_usage . ,doc) (help-split-fundoc (documentation func t) func)))
     (with-help-window (help-buffer)
       (princ doc))))
+
+(defvar org-edna-edit-finder-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?\r] 'org-edna-follow-finder)
+    (org-defkey map "o"      'org-edna-edit-display-finder-target)
+    map))
+
+(defun org-edna-edit--propertize-form-string (string-form)
+  (let ((form (org-edna--convert-form string-form)))
+    (cl-loop for (s1 s2 . _) on (append (car form) (list (cons nil (cdr form))))
+             by #'cdr
+             for single-form = (car-safe s1)
+             when single-form
+             do (pcase-let* ((`(,mkey . ,args) single-form)
+                             (`(,mod . ,key) (org-edna-break-modifier mkey))
+                             (`(,type . ,func) (org-edna--function-for-key key))
+                             (start (cdr s1))
+                             (end (1- (cdr s2))))
+                  (put-text-property start end
+                                     'org-edna-form single-form
+                                     string-form)
+                  (cl-loop for (name . value) in
+                           (pcase type
+                             ('finder
+                              (when-let ((markers (condition-case-unless-debug err
+                                                      (org-edna--handle-finder func args)
+                                                    (error err)))
+                                         (help (save-excursion
+                                                 (goto-char (car markers))
+                                                 (org-format-outline-path
+                                                  (org-get-outline-path t t))))
+                                         (action #'org-edna-follow-finder))
+                                `((org-edna-finder-markers . ,markers)
+                                  (face . link)
+                                  (follow-link . org-edna-follow-finder)
+                                  (help-echo . ,help)
+                                  (keymap . ,org-edna-edit-finder-map))))
+                             ('action
+                              ;; `(org-edna--handle-action ',func ,target-var (point-marker) ',args)
+                              )
+                             ('condition
+                              ;; `(setq ,blocking-var (or ,blocking-var
+                              ;;                          (org-edna--handle-condition ',func ',mod ',args
+                              ;;                                                      ,target-var
+                              ;;                                                      ,consideration-var)))
+                              )
+                             ('consideration
+                              ;; `(setq ,consideration-var ',(nth 0 args))
+                              ))
+                           do (put-text-property start end name value string-form)))))
+  string-form)
+
+(defun org-edna-edit-focus-next-form ()
+  "Go to the next item with org-edna-form property."
+  (interactive)
+  (let* ((start (if (get-char-property (point) 'org-edna-form)
+                    (next-single-property-change (point) 'org-edna-form)
+                  (point)))
+         (point (text-property-not-all start (point-max) 'org-edna-form nil)))
+    (when point (goto-char point)))
+  (org-edna-edit-context-action))
+
+(defun org-edna-edit-focus-previous-form ()
+  "Go to the previous item with org-edna-form property."
+  (interactive)
+  (goto-char (previous-single-property-change (point) 'org-edna-form))
+  (unless (get-char-property (point) 'org-edna-form)
+    (goto-char (previous-single-property-change (point) 'org-edna-form)))
+  (org-edna-edit-context-action))
+
+(defun org-edna-edit-context-action ()
+  "Perform a contextual action after navigating to an item."
+  (let ((help-string (get-char-property (point) 'help-echo)))
+    (when help-string
+      (funcall show-help-function help-string))))
+
+(defun org-edna-follow-finder (pos)
+  "Follow the finder link at POS."
+  (interactive "d")
+  (let ((markers (get-char-property pos 'org-edna-finder-markers)))
+    (pcase markers
+      (`(,marker)
+       (switch-to-buffer-other-window (marker-buffer marker))
+       (goto-char marker)))))
+
+(defun org-edna-edit-display-finder-target (pos)
+  "Follow the finder link at POS but stay on the current window."
+  (interactive "d")
+  (let ((markers (get-char-property pos 'org-edna-finder-markers)))
+    (pcase markers
+      (`(,marker)
+       (let ((orig-window (selected-window)))
+         (switch-to-buffer-other-window (marker-buffer marker))
+         (goto-char marker)
+         (select-window orig-window))))))
 
 
 ;;; Bug Reports
