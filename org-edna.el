@@ -2490,6 +2490,7 @@ Displays help for KEYWORD in the Help buffer."
   (let ((map (make-sparse-keymap)))
     (define-key map [?\r] 'org-edna-follow-finder)
     (org-defkey map "h" 'org-edna-edit-describe-keyword)
+    (org-defkey map "e" 'org-edna-edit-edit-finder)
     (org-defkey map "o"      'org-edna-edit-display-finder-target)
     map))
 
@@ -2672,11 +2673,13 @@ situation, e.g. consideration."
      ,(format "Edit %s  at point." type)
      (interactive)
      (let* ((pos (point))
-            (begin (1+ (previous-single-property-change pos 'org-edna-form)))
-            (end (1+ (next-single-property-change pos 'org-edna-form)))
+            (prev-change (previous-single-property-change pos 'org-edna-form))
+            (begin (if prev-change (1+ prev-change) pos))
+            (end (next-single-property-change pos 'org-edna-form))
             (orig-keyword (symbol-name (get-char-property pos 'org-edna-keyword)))
             (orig-mod (symbol-name (get-char-property pos 'org-edna-keyword-modifier)))
-            (orig-args (cdr (get-char-property pos 'org-edna-form))))
+            (orig-args (cdr (get-char-property pos 'org-edna-form)))
+            (orig-marker org-edna-edit-original-marker))
        (goto-char begin)
        (set-mark begin)
        (goto-char end)
@@ -2688,8 +2691,11 @@ situation, e.g. consideration."
                                           (when (equal orig-keyword keyword)
                                             (when orig-args (prin1-to-string orig-args))))))
          (kill-region begin end)
-         (insert (org-edna-edit--propertize-form-string keyword)
-                 (or args ""))
+         (insert (with-current-buffer (marker-buffer orig-marker)
+                   (save-excursion
+                     (goto-char orig-marker)
+                     (org-edna-edit--propertize-form-string
+                      (concat keyword (or args ""))))))
          ;; The string form should be followed by either space or newline,
          ;; so insert one if there is none.
          (unless (looking-at "[\n\s]")
@@ -2697,6 +2703,9 @@ situation, e.g. consideration."
          (goto-char begin)
          (org-edna-edit-context-action)))))
 
+(org-edna-edit--def-edit finder
+                         :keyword-prompt "Finder: "
+                         :keywords (org-edna--collect-finders))
 (org-edna-edit--def-edit action
                          :keyword-prompt "Action: "
                          :keywords (org-edna--collect-actions))
