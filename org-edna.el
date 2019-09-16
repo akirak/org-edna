@@ -2491,6 +2491,12 @@ Displays help for KEYWORD in the Help buffer."
     (org-defkey map "o"      'org-edna-edit-display-finder-target)
     map))
 
+(defvar org-edna-edit-action-map
+  (let ((map (make-sparse-keymap)))
+    (org-defkey map "h" 'org-edna-edit-describe-keyword)
+    (org-defkey map "e" 'org-edna-edit-edit-action)
+    map))
+
 (defun org-edna-edit--propertize-form-string (string-form)
   (let ((form (org-edna--convert-form string-form)))
     (cl-loop for (s1 s2 . _) on (append (car form) (list (cons nil (cdr form))))
@@ -2527,10 +2533,11 @@ Displays help for KEYWORD in the Help buffer."
                                   (keymap . ,org-edna-edit-finder-map))))
                              ('action
                               `((face . org-edna-edit-action-face)
-                                ;; (keymap . org-edna-edit-action-map)
-                                )
-                              ;; `(org-edna--handle-action ',func ,target-var (point-marker) ',args)
-                              )
+                                (help-echo . ,(car (split-string (documentation func) "\n")))
+                                (org-edna-keyword . ,key)
+                                (org-edna-action-function . ,func)
+                                (org-edna-action-args . ,args)
+                                (keymap . ,org-edna-edit-action-map)))
                              ('condition
                               `((face . org-edna-edit-condition-face)
                                 ;; (keymap . org-edna-edit-action-map)
@@ -2614,6 +2621,29 @@ Displays help for KEYWORD in the Help buffer."
         (switch-to-buffer-other-window (marker-buffer marker))
         (goto-char marker)
         (select-window orig-window)))))
+
+(defun org-edna-edit-edit-action ()
+  "Edit action at point."
+  (interactive)
+  (let* ((pos (point))
+         (begin (1+ (previous-single-property-change pos 'org-edna-form)))
+         (end (1+ (next-single-property-change pos 'org-edna-form)))
+         (orig-key (symbol-name (get-char-property pos 'org-edna-mkey)))
+         (orig-func (get-char-property pos 'org-edna-action-function))
+         (orig-args (cdr (get-char-property pos 'org-edna-form))))
+    (goto-char begin)
+    (set-mark begin)
+    (goto-char end)
+    (let* ((action (completing-read "Action: " (org-edna--collect-actions)
+                                    nil nil nil nil orig-key))
+           (args (read-from-minibuffer "Args: "
+                                       (when (equal orig-key action)
+                                         (prin1-to-string orig-args)))))
+      (kill-region begin end)
+      (insert (org-edna-edit--propertize-form-string action)
+              (or args ""))
+      (goto-char begin)
+      (org-edna-edit-context-action))))
 
 
 ;;; Bug Reports
