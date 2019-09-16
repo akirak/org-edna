@@ -2657,6 +2657,18 @@ Displays help for KEYWORD in the Help buffer."
     (org-edna-edit-context-action)))
 
 (cl-defmacro org-edna-edit--def-edit (type &key keyword-prompt keywords)
+  "Define a function for replacing a string form under point.
+
+TYPE is a string or symbol to denote the type of object.
+It is used as part of the created function, so it must be unique.
+
+KEYWORD-PROMPT is used as a prompt for the completion interface
+which lets the user select a keyword.
+
+KEYWORDS is an expression that generates a list of keywords from
+which the user should choose a new keyword.  Alternatively, it can
+be a string constant which is the only allowed value in the
+situation, e.g. consideration."
   `(defun ,(intern (format "org-edna-edit-edit-%s" type)) ()
      ,(format "Edit %s  at point." type)
      (interactive)
