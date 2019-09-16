@@ -2689,13 +2689,14 @@ situation, e.g. consideration."
                                                   nil nil nil nil orig-keyword))))
               (args (read-from-minibuffer "Args: "
                                           (when (equal orig-keyword keyword)
-                                            (when orig-args (prin1-to-string orig-args))))))
+                                            (when orig-args (prin1-to-string orig-args)))))
+              (newstr (with-current-buffer (marker-buffer orig-marker)
+                        (save-excursion
+                          (goto-char orig-marker)
+                          (org-edna-edit--propertize-form-string
+                           (concat keyword (or args "")))))))
          (kill-region begin end)
-         (insert (with-current-buffer (marker-buffer orig-marker)
-                   (save-excursion
-                     (goto-char orig-marker)
-                     (org-edna-edit--propertize-form-string
-                      (concat keyword (or args ""))))))
+         (insert newstr)
          ;; The string form should be followed by either space or newline,
          ;; so insert one if there is none.
          (unless (looking-at "[\n\s]")
