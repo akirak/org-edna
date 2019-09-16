@@ -92,6 +92,11 @@ it will be used.  It should be either \"short\" or
   :type '(choice (const :tag "Short Format" 'short)
                  (const :tag "Long Format" 'long)))
 
+(defcustom org-edna-use-ivy nil
+  "Whether to use Ivy for selecting finders and keywords."
+  :group 'org-edna
+  :type 'boolean)
+
 ;;; Faces
 
 (defface org-edna-edit-form-face
@@ -2682,14 +2687,22 @@ situation, e.g. consideration."
             (orig-keyword (symbol-name (get-char-property pos 'org-edna-keyword)))
             (orig-mod (symbol-name (get-char-property pos 'org-edna-keyword-modifier)))
             (orig-args (cdr (get-char-property pos 'org-edna-form)))
-            (orig-marker org-edna-edit-original-marker))
+            (orig-marker org-edna-edit-original-marker)
+            (keyword-prompt (or ,keyword-prompt "Keyword: ")))
        (goto-char begin)
        (set-mark begin)
        (goto-char end)
        (let* ((keyword ,(cl-etypecase keywords
                           (string keywords)
-                          (list `(completing-read ,keyword-prompt ,keywords
-                                                  nil nil nil nil orig-keyword))))
+                          (list `(cond
+                                  ((and org-edna-use-ivy (featurep 'ivy))
+                                   (require 'ivy)
+                                   (ivy-read keyword-prompt ,keywords
+                                             :preselect orig-keyword
+                                             :caller 'org-edna-ivy-keyword))
+                                  (t
+                                   (completing-read keyword-prompt ,keywords
+                                                    nil nil nil nil orig-keyword))))))
               (args (read-from-minibuffer "Args: "
                                           (when (equal orig-keyword keyword)
                                             (when orig-args (prin1-to-string orig-args)))))
