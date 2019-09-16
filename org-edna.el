@@ -38,6 +38,7 @@
 (require 'org)
 (eval-when-compile (require 'subr-x))
 (require 'seq)
+(require 'cl-lib)
 
 ;; Compatibility for Emacs < 26.1
 (unless (fboundp 'if-let*)
