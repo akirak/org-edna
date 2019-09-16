@@ -2515,6 +2515,9 @@ Displays help for KEYWORD in the Help buffer."
                (propertize (car (split-string (documentation func t) "\n"))
                            ;; TODO: Add a dedicated face
                            'face 'font-lock-comment-face))))))
+
+;;; Extra features for org-edna-edit
+
 (defvar org-edna-edit-finder-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?\r] 'org-edna-follow-finder)
@@ -2688,7 +2691,19 @@ Displays help for KEYWORD in the Help buffer."
     (goto-char begin)
     (org-edna-edit-context-action)))
 
-(cl-defmacro org-edna-edit--def-edit (type &key keyword-prompt keywords)
+(defun org-edna--read-keyword (prompt candidates &optional default)
+  "Read a keyword from the user."
+  (cond
+   ((and org-edna-use-ivy (featurep 'ivy))
+    (require 'ivy)
+    (ivy-read prompt candidates
+              :preselect default
+              :caller 'org-edna-ivy-keyword))
+   (t
+    (completing-read prompt candidates
+                     nil nil nil nil default))))
+
+(cl-defmacro org-edna--def-edit-commands (type &key keyword-prompt keywords)
   "Define a function for replacing a string form under point.
 
 TYPE is a string or symbol to denote the type of object.
@@ -2701,66 +2716,93 @@ KEYWORDS is an expression that generates a list of keywords from
 which the user should choose a new keyword.  Alternatively, it can
 be a string constant which is the only allowed value in the
 situation, e.g. consideration."
-  `(defun ,(intern (format "org-edna-edit-edit-%s" type)) ()
-     ,(format "Edit %s  at point." type)
-     (interactive)
-     (let* ((pos (point))
-            (prev-change (previous-single-property-change pos 'org-edna-form))
-            (begin (if prev-change (1+ prev-change) pos))
-            (end (next-single-property-change pos 'org-edna-form))
-            (orig-keyword (symbol-name (get-char-property pos 'org-edna-keyword)))
-            (orig-mod (symbol-name (get-char-property pos 'org-edna-keyword-modifier)))
-            (orig-args (cdr (get-char-property pos 'org-edna-form)))
-            (orig-marker org-edna-edit-original-marker)
-            (keyword-prompt (or ,keyword-prompt "Keyword: ")))
-       (goto-char begin)
-       (set-mark begin)
-       (goto-char end)
-       (let* ((keyword ,(cl-etypecase keywords
-                          (string keywords)
-                          (list `(cond
-                                  ((and org-edna-use-ivy (featurep 'ivy))
-                                   (require 'ivy)
-                                   (ivy-read keyword-prompt ,keywords
-                                             :preselect orig-keyword
-                                             :caller 'org-edna-ivy-keyword))
-                                  (t
-                                   (completing-read keyword-prompt ,keywords
-                                                    nil nil nil nil orig-keyword))))))
+  `(progn
+     (defun ,(intern (format "org-edna-edit-edit-%s" type)) ()
+       ,(format "Edit %s  at point." type)
+       (interactive)
+       (let* ((pos (point))
+              (prev-change (previous-single-property-change pos 'org-edna-form))
+              (begin (if prev-change (1+ prev-change) pos))
+              (end (next-single-property-change pos 'org-edna-form))
+              (orig-keyword (symbol-name (get-char-property pos 'org-edna-keyword)))
+              (orig-mod (symbol-name (get-char-property pos 'org-edna-keyword-modifier)))
+              (orig-args (cdr (get-char-property pos 'org-edna-form)))
+              (orig-marker org-edna-edit-original-marker)
+              (keyword-prompt (or ,keyword-prompt "Keyword: ")))
+         (goto-char begin)
+         (set-mark begin)
+         (goto-char end)
+         (let* ((keyword ,(cl-etypecase keywords
+                            (string keywords)
+                            (list `(org-edna--read-keyword keyword-prompt
+                                                           ,keywords
+                                                           orig-keyword))))
+                (func (cdr (org-edna--function-for-key keyword)))
+                (args (if-let ((reader (alist-get func org-edna-args-reader-alist)))
+                          (with-current-buffer (marker-buffer orig-marker)
+                            (goto-char orig-marker)
+                            (funcall reader (format "Arguments to %s: " func)
+                                     (when (equal orig-keyword keyword)
+                                       (when orig-args (prin1-to-string orig-args)))))
+                        (read-from-minibuffer "Args: "
+                                              (when (equal orig-keyword keyword)
+                                                (when orig-args (prin1-to-string orig-args))))))
+                (newstr (with-current-buffer (marker-buffer orig-marker)
+                          (save-excursion
+                            (goto-char orig-marker)
+                            (org-edna-edit--propertize-form-string
+                             (concat keyword (or args "")))))))
+           (kill-region begin end)
+           (insert newstr)
+           ;; The string form should be followed by either space or newline,
+           ;; so insert one if there is none.
+           (unless (looking-at "[\n\s]")
+             (insert " "))
+           (goto-char begin)
+           (org-edna-edit-context-action))))
+     (cl-defun ,(intern (format "org-edna-insert-%s" type)) ()
+       "Construct a finder form using Ivy."
+       (interactive)
+       (let* ((orig-maker (cond
+                           ((derived-mode-p 'org-mode)
+                            (save-excursion
+                              (org-back-to-heading)
+                              (point)))
+                           ((org-edna-in-edit-buffer-p)
+                            org-edna-edit-original-marker)))
+              (keyword (save-window-excursion
+                         (org-edna--read-keyword (or ,keyword-prompt "Keyword: ")
+                                                 ,keywords)))
               (func (cdr (org-edna--function-for-key keyword)))
               (args (if-let ((reader (alist-get func org-edna-args-reader-alist)))
                         (with-current-buffer (marker-buffer orig-marker)
                           (goto-char orig-marker)
-                          (funcall reader (format "Arguments to %s: " func)
-                                   (when (equal orig-keyword keyword)
-                                     (when orig-args (prin1-to-string orig-args)))))
-                      (read-from-minibuffer "Args: "
-                                            (when (equal orig-keyword keyword)
-                                              (when orig-args (prin1-to-string orig-args))))))
-              (newstr (with-current-buffer (marker-buffer orig-marker)
-                        (save-excursion
-                          (goto-char orig-marker)
-                          (org-edna-edit--propertize-form-string
-                           (concat keyword (or args "")))))))
-         (kill-region begin end)
-         (insert newstr)
-         ;; The string form should be followed by either space or newline,
-         ;; so insert one if there is none.
-         (unless (looking-at "[\n\s]")
-           (insert " "))
-         (goto-char begin)
-         (org-edna-edit-context-action)))))
+                          (funcall reader (format "Arguments to %s: " func)))
+                      (read-from-minibuffer "Args: ")))
+              (str (concat keyword (or args ""))))
+         ;; Insert the string if the function is called interactively
+         (if (interactive-p)
+             (cond
+              ((org-edna-in-edit-buffer-p)
+               (insert (condition-case _
+                           (with-current-buffer (marker-buffer org-edna-ivy-finder-marker)
+                             (goto-char org-edna-ivy-finder-marker)
+                             (org-edna-edit--propertize-form-string str))
+                         (error str))))
+              (t
+               (insert str)))
+           str)))))
 
-(org-edna-edit--def-edit finder
-                         :keyword-prompt "Finder: "
-                         :keywords (org-edna--collect-finders))
-(org-edna-edit--def-edit action
-                         :keyword-prompt "Action: "
-                         :keywords (org-edna--collect-actions))
-(org-edna-edit--def-edit condition
-                         :keyword-prompt "Condition: "
-                         :keywords (org-edna--collect-conditions))
-(org-edna-edit--def-edit consideration :keywords "consider")
+(org-edna--def-edit-commands finder
+                             :keyword-prompt "Finder: "
+                             :keywords (org-edna--collect-finders))
+(org-edna--def-edit-commands action
+                             :keyword-prompt "Action: "
+                             :keywords (org-edna--collect-actions))
+(org-edna--def-edit-commands condition
+                             :keyword-prompt "Condition: "
+                             :keywords (org-edna--collect-conditions))
+(org-edna--def-edit-commands consideration :keywords "consider")
 
 
 ;;; Bug Reports
