@@ -2607,15 +2607,16 @@ Displays help for KEYWORD in the Help buffer."
   (pcase (length markers)
     (0 nil)
     (1 (car markers))
-    (_ (completing-read "Choose a marker:"
-                        (mapcar (lambda (marker)
-                                  (propertize
-                                   (with-current-buffer (marker-buffer marker)
-                                     (goto-char marker)
-                                     (org-format-outline-path
-                                      (org-get-outline-path t t)))
-                                   'marker marker))
-                                markers)))))
+    (_ (let ((out (completing-read "Choose a marker:"
+                                   (mapcar (lambda (marker)
+                                             (propertize
+                                              (with-current-buffer (marker-buffer marker)
+                                                (goto-char marker)
+                                                (org-format-outline-path
+                                                 (org-get-outline-path t t)))
+                                              'marker marker))
+                                           markers))))
+         (get-char-property 0 'marker out)))))
 
 (defun org-edna-follow-finder (pos)
   "Follow the finder link at POS."
