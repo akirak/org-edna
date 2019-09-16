@@ -2497,6 +2497,12 @@ Displays help for KEYWORD in the Help buffer."
     (org-defkey map "e" 'org-edna-edit-edit-action)
     map))
 
+(defvar org-edna-edit-condition-map
+  (let ((map (make-sparse-keymap)))
+    (org-defkey map "h" 'org-edna-edit-describe-keyword)
+    (org-defkey map "e" 'org-edna-edit-edit-condition)
+    map))
+
 (defun org-edna-edit--propertize-form-string (string-form)
   (let ((form (org-edna--convert-form string-form)))
     (cl-loop for (s1 s2 . _) on (append (car form) (list (cons nil (cdr form))))
@@ -2540,13 +2546,12 @@ Displays help for KEYWORD in the Help buffer."
                                 (keymap . ,org-edna-edit-action-map)))
                              ('condition
                               `((face . org-edna-edit-condition-face)
-                                ;; (keymap . org-edna-edit-action-map)
-                                )
-                              ;; `(setq ,blocking-var (or ,blocking-var
-                              ;;                          (org-edna--handle-condition ',func ',mod ',args
-                              ;;                                                      ,target-var
-                              ;;                                                      ,consideration-var)))
-                              )
+                                (help-echo . ,(car (split-string (documentation func) "\n")))
+                                (org-edna-keyword . ,key)
+                                (org-edna-keyword-modifier . ,mod)
+                                (org-edna-condition-function . ,func)
+                                (org-edna-condition-args . ,args)
+                                (keymap . ,org-edna-edit-condition-map)))
                              ('consideration
                               `((face . org-edna-edit-consideration-face)
                                 ;; (keymap . org-edna-edit-action-map)
@@ -2622,7 +2627,7 @@ Displays help for KEYWORD in the Help buffer."
         (goto-char marker)
         (select-window orig-window)))))
 
-(defmacro org-edna-edit--def-edit (type prompt keywords)
+(cl-defmacro org-edna-edit--def-edit (type &key keyword-prompt keywords)
   `(defun ,(intern (format "org-edna-edit-edit-%s" type)) ()
      ,(format "Edit %s  at point." type)
      (interactive)
@@ -2635,8 +2640,10 @@ Displays help for KEYWORD in the Help buffer."
        (goto-char begin)
        (set-mark begin)
        (goto-char end)
-       (let* ((keyword (completing-read ,prompt ,keywords
-                                        nil nil nil nil orig-keyword))
+       (let* ((keyword ,(cl-etypecase keywords
+                          (string keywords)
+                          (list `(completing-read ,keyword-prompt ,keywords
+                                                  nil nil nil nil orig-keyword))))
               (args (read-from-minibuffer "Args: "
                                           (when (equal orig-keyword keyword)
                                             (prin1-to-string orig-args)))))
@@ -2646,7 +2653,12 @@ Displays help for KEYWORD in the Help buffer."
          (goto-char begin)
          (org-edna-edit-context-action)))))
 
-(org-edna-edit--def-edit action "Action: " (org-edna--collect-actions))
+(org-edna-edit--def-edit action
+                         :keyword-prompt "Action: "
+                         :keywords (org-edna--collect-actions))
+(org-edna-edit--def-edit condition
+                         :keyword-prompt "Condition: "
+                         :keywords (org-edna--collect-conditions))
 
 
 ;;; Bug Reports
