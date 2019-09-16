@@ -2514,7 +2514,7 @@ Displays help for KEYWORD in the Help buffer."
 
 (defun org-edna-edit--propertize-form-string (string-form)
   (let ((form (org-edna--convert-form string-form)))
-    (cl-loop for (s1 s2 . _) on (append (car form) (list (cons nil (cdr form))))
+    (cl-loop for (s1 s2 . _) on (append (car form) (list (cons nil (1+ (cdr form)))))
              by #'cdr
              for single-form = (car-safe s1)
              when single-form
@@ -2641,7 +2641,7 @@ Displays help for KEYWORD in the Help buffer."
   (interactive "d")
   (let* ((pos (point))
          (begin (1+ (previous-single-property-change pos 'org-edna-form)))
-         (end (1+ (next-single-property-change begin 'org-edna-form)))
+         (end (next-single-property-change begin 'org-edna-form))
          (orig-mod (get-char-property pos 'org-edna-keyword-modifier))
          (orig-string-form (buffer-substring-no-properties begin end)))
     (unless orig-string-form
