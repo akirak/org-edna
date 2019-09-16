@@ -2324,6 +2324,7 @@ the source buffer.  Finish with `C-c C-c' or abort with `C-c C-k'\n\n")
     (insert (format "BLOCKER\n%s\n\n" blocker))
     (setq-local org-edna-trigger-section-marker (point-marker))
     (insert (format "TRIGGER\n%s\n\n" trigger))
+    (goto-char org-edna-blocker-section-marker)
 
     ;; Change syntax table to make ! and ? symbol constituents
     (modify-syntax-entry ?! "_")
