@@ -2503,6 +2503,12 @@ Displays help for KEYWORD in the Help buffer."
     (org-defkey map "e" 'org-edna-edit-edit-condition)
     map))
 
+(defvar org-edna-edit-consideration-map
+  (let ((map (make-sparse-keymap)))
+    (org-defkey map "h" 'org-edna-edit-describe-keyword)
+    (org-defkey map "e" 'org-edna-edit-edit-consideration)
+    map))
+
 (defun org-edna-edit--propertize-form-string (string-form)
   (let ((form (org-edna--convert-form string-form)))
     (cl-loop for (s1 s2 . _) on (append (car form) (list (cons nil (cdr form))))
@@ -2554,10 +2560,11 @@ Displays help for KEYWORD in the Help buffer."
                                 (keymap . ,org-edna-edit-condition-map)))
                              ('consideration
                               `((face . org-edna-edit-consideration-face)
-                                ;; (keymap . org-edna-edit-action-map)
-                                )
-                              ;; `(setq ,consideration-var ',(nth 0 args))
-                              ))
+                                (help-echo . ,(car (split-string (documentation func) "\n")))
+                                (org-edna-keyword . ,key)
+                                (org-edna-keyword-modifier . ,mod)
+                                (org-edna-consideration . ,(nth 0 args))
+                                (keymap . ,org-edna-edit-consideration-map))))
                            do (put-text-property start end name value string-form)))))
   string-form)
 
@@ -2659,6 +2666,7 @@ Displays help for KEYWORD in the Help buffer."
 (org-edna-edit--def-edit condition
                          :keyword-prompt "Condition: "
                          :keywords (org-edna--collect-conditions))
+(org-edna-edit--def-edit consideration :keywords "consider")
 
 
 ;;; Bug Reports
