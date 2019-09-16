@@ -2675,7 +2675,7 @@ Displays help for KEYWORD in the Help buffer."
                                                   nil nil nil nil orig-keyword))))
               (args (read-from-minibuffer "Args: "
                                           (when (equal orig-keyword keyword)
-                                            (prin1-to-string orig-args)))))
+                                            (when orig-args (prin1-to-string orig-args))))))
          (kill-region begin end)
          (insert (org-edna-edit--propertize-form-string keyword)
                  (or args ""))
