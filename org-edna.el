@@ -2500,6 +2500,7 @@ Displays help for KEYWORD in the Help buffer."
 (defvar org-edna-edit-condition-map
   (let ((map (make-sparse-keymap)))
     (org-defkey map "h" 'org-edna-edit-describe-keyword)
+    (org-defkey map "!" 'org-edna-edit-toggle-negative)
     (org-defkey map "e" 'org-edna-edit-edit-condition)
     map))
 
@@ -2547,6 +2548,7 @@ Displays help for KEYWORD in the Help buffer."
                               `((face . org-edna-edit-action-face)
                                 (help-echo . ,(car (split-string (documentation func) "\n")))
                                 (org-edna-keyword . ,key)
+                                (org-edna-keyword-modifier . ,mod)
                                 (org-edna-action-function . ,func)
                                 (org-edna-action-args . ,args)
                                 (keymap . ,org-edna-edit-action-map)))
@@ -2633,6 +2635,25 @@ Displays help for KEYWORD in the Help buffer."
         (switch-to-buffer-other-window (marker-buffer marker))
         (goto-char marker)
         (select-window orig-window)))))
+
+(defun org-edna-edit-toggle-negative (pos)
+  "Toggle the negative flag of the keyword at POS."
+  (interactive "d")
+  (let* ((pos (point))
+         (begin (1+ (previous-single-property-change pos 'org-edna-form)))
+         (end (1+ (next-single-property-change begin 'org-edna-form)))
+         (orig-mod (get-char-property pos 'org-edna-keyword-modifier))
+         (orig-string-form (buffer-substring-no-properties begin end)))
+    (unless orig-string-form
+      (user-error "No form under point"))
+    (goto-char begin)
+    (delete-region begin end)
+    (insert (org-edna-edit--propertize-form-string
+             (if (eq orig-mod (intern "!"))
+                 (substring orig-string-form 1)
+               (concat "!" orig-string-form))))
+    (goto-char begin)
+    (org-edna-edit-context-action)))
 
 (cl-defmacro org-edna-edit--def-edit (type &key keyword-prompt keywords)
   `(defun ,(intern (format "org-edna-edit-edit-%s" type)) ()
