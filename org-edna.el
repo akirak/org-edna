@@ -2303,7 +2303,7 @@ same as \"consider\"."
     (org-defkey map "\C-c'"         'org-edna-edit-finish)
     (org-defkey map "\C-c\C-q"      'org-edna-edit-abort)
     (org-defkey map "\C-c\C-k"      'org-edna-edit-abort)
-    (org-defkey map "\C-i"          'org-edna-edit-focus-next-form)
+    (org-defkey map [?\t]           'org-edna-edit-focus-next-form)
     (org-defkey map [backtab]       'org-edna-edit-focus-previous-form)
     map))
 
@@ -2623,9 +2623,11 @@ Displays help for KEYWORD in the Help buffer."
 (defun org-edna-edit-focus-previous-form ()
   "Go to the previous item with org-edna-form property."
   (interactive)
-  (goto-char (previous-single-property-change (point) 'org-edna-form))
-  (unless (get-char-property (point) 'org-edna-form)
-    (goto-char (previous-single-property-change (point) 'org-edna-form)))
+  (when-let ((p1 (previous-single-property-change (point) 'org-edna-form))
+             (p2 (if (get-char-property p1 'org-edna-form)
+                     p1
+                   (previous-single-property-change p1 'org-edna-form))))
+    (goto-char p2))
   (org-edna-edit-context-action))
 
 (defun org-edna-edit-context-action ()
