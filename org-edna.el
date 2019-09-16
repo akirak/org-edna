@@ -2622,28 +2622,31 @@ Displays help for KEYWORD in the Help buffer."
         (goto-char marker)
         (select-window orig-window)))))
 
-(defun org-edna-edit-edit-action ()
-  "Edit action at point."
-  (interactive)
-  (let* ((pos (point))
-         (begin (1+ (previous-single-property-change pos 'org-edna-form)))
-         (end (1+ (next-single-property-change pos 'org-edna-form)))
-         (orig-key (symbol-name (get-char-property pos 'org-edna-mkey)))
-         (orig-func (get-char-property pos 'org-edna-action-function))
-         (orig-args (cdr (get-char-property pos 'org-edna-form))))
-    (goto-char begin)
-    (set-mark begin)
-    (goto-char end)
-    (let* ((action (completing-read "Action: " (org-edna--collect-actions)
-                                    nil nil nil nil orig-key))
-           (args (read-from-minibuffer "Args: "
-                                       (when (equal orig-key action)
-                                         (prin1-to-string orig-args)))))
-      (kill-region begin end)
-      (insert (org-edna-edit--propertize-form-string action)
-              (or args ""))
-      (goto-char begin)
-      (org-edna-edit-context-action))))
+(defmacro org-edna-edit--def-edit (type prompt keywords)
+  `(defun ,(intern (format "org-edna-edit-edit-%s" type)) ()
+     ,(format "Edit %s  at point." type)
+     (interactive)
+     (let* ((pos (point))
+            (begin (1+ (previous-single-property-change pos 'org-edna-form)))
+            (end (1+ (next-single-property-change pos 'org-edna-form)))
+            (orig-keyword (symbol-name (get-char-property pos 'org-edna-keyword)))
+            (orig-mod (symbol-name (get-char-property pos 'org-edna-keyword-modifier)))
+            (orig-args (cdr (get-char-property pos 'org-edna-form))))
+       (goto-char begin)
+       (set-mark begin)
+       (goto-char end)
+       (let* ((keyword (completing-read ,prompt ,keywords
+                                        nil nil nil nil orig-keyword))
+              (args (read-from-minibuffer "Args: "
+                                          (when (equal orig-keyword keyword)
+                                            (prin1-to-string orig-args)))))
+         (kill-region begin end)
+         (insert (org-edna-edit--propertize-form-string keyword)
+                 (or args ""))
+         (goto-char begin)
+         (org-edna-edit-context-action)))))
+
+(org-edna-edit--def-edit action "Action: " (org-edna--collect-actions))
 
 
 ;;; Bug Reports
