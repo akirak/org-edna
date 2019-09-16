@@ -2625,7 +2625,8 @@ Displays help for KEYWORD in the Help buffer."
                  (get-char-property pos 'org-edna-finder-markers))))
     (when marker
       (switch-to-buffer-other-window (marker-buffer marker))
-      (goto-char marker))))
+      (goto-char marker)
+      (org-show-entry))))
 
 (defun org-edna-edit-display-finder-target (pos)
   "Follow the finder link at POS but stay on the current window."
@@ -2636,6 +2637,7 @@ Displays help for KEYWORD in the Help buffer."
       (let ((orig-window (selected-window)))
         (switch-to-buffer-other-window (marker-buffer marker))
         (goto-char marker)
+        (org-show-entry)
         (select-window orig-window)))))
 
 (defun org-edna-edit-toggle-negative (pos)
