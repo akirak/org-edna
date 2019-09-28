@@ -2307,6 +2307,8 @@ same as \"consider\"."
     (org-defkey map [backtab]       'org-edna-edit-focus-previous-form)
     map))
 
+(defvar org-edna-edit-mode-hook nil)
+
 (defun org-edna-edit ()
   "Edit the blockers and triggers for current heading in a separate buffer."
   (interactive)
@@ -2342,6 +2344,8 @@ the source buffer.  Finish with `C-c C-c' or abort with `C-c C-k'\n\n")
     ;; Change syntax table to make ! and ? symbol constituents
     (modify-syntax-entry ?! "_")
     (modify-syntax-entry ?? "_")
+
+    (run-hooks 'org-edna-edit-mode-hook)
 
     ;; Set up completion
     (add-hook 'completion-at-point-functions 'org-edna-completion-at-point nil t)))
