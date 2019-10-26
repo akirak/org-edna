@@ -727,7 +727,12 @@ This shouldn't be run from outside of `org-blocker-hook'."
   (org-edna-run change-plist
     (if-let* ((form (org-entry-get pos "BLOCKER" org-edna-use-inheritance)))
         ;; Return nil if there is no blocking entry
-        (not (setq org-block-entry-blocking (org-edna-process-form form 'condition)))
+        (condition-case err
+            (not (setq org-block-entry-blocking (org-edna-process-form form 'condition)))
+          ;; If there is an error, it is considered blocked
+          (error (progn
+                   (message err)
+                   t)))
       t)))
 
 ;;;###autoload
