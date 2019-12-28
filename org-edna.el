@@ -2525,7 +2525,46 @@ Displays help for KEYWORD in the Help buffer."
                            ;; TODO: Add a dedicated face
                            'face 'font-lock-comment-face))))))
 
-;;; Extra features for org-edna-edit
+;;; Extra utilities
+;;;; Additional features for id-based blockers
+(defun org-edna--add-id (id old)
+  "Generate a new ID finder with ID added to OLD."
+  (if (string-match (rx "ids("
+                        (group (+ (any digit "-a-f"))
+                               (*? (and (+ space) (+ (any digit "-a-f")))))
+                        ")")
+                    old)
+      (let ((new-ids (format "ids(%s %s)" (match-string 1 old) id)))
+        (s-replace (match-string 0 old) new-ids old))
+    (format "%s ids(%s)" old id)))
+
+(defun org-edna-add-id-blocker (id)
+  "Add ID to the blockers of the current entry."
+  (cond
+   ((derived-mode-p 'org-mode)
+    (let* ((old (org-entry-get nil "BLOCKER")))
+      (org-set-property "BLOCKER"
+                        (if old
+                            (org-edna--add-id id old)
+                          (format "ids(%s)" id)))))
+   ((derived-mode-p 'org-agenda-mode)
+    (let* ((buffer-orig (buffer-name))
+           (marker (or (org-get-at-bol 'org-hd-marker)
+                       (org-agenda-error)))
+           (buffer (marker-buffer marker))
+           (pos (marker-position marker)))
+      (with-current-buffer buffer
+        (org-with-wide-buffer
+         (goto-char marker)
+         (let ((old (org-entry-get nil "BLOCKER")))
+           (org-set-property "BLOCKER"
+                             (if old
+                                 (org-edna--add-id id old)
+                               (format "ids(%s)" id))))))
+      (org-agenda-redo)))
+   (t (user-error "Unsupported mode"))))
+
+;;;; Extra features for org-edna-edit
 
 (defvar org-edna-edit-finder-map
   (let ((map (make-sparse-keymap)))
